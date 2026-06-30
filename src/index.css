@@ -1,0 +1,186 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #edf7f7;
+  background: #8cc7d6;
+  font-synthesis: none;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+  background: #9ecfe0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.glass {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.16)),
+    rgba(18, 42, 54, 0.28);
+  box-shadow:
+    0 24px 70px rgba(31, 61, 82, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(26px) saturate(1.2);
+}
+
+main > * {
+  min-width: 0;
+}
+
+.panel-title {
+  color: #f6fffb;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.subtle {
+  color: rgba(223, 247, 244, 0.68);
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid rgba(64, 231, 205, 0.9);
+  outline-offset: 3px;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #0b1c1e;
+}
+
+.weather-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  overflow-x: hidden;
+  transition: background 700ms ease;
+}
+
+.weather-shell::before,
+.weather-shell::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  transition: opacity 700ms ease;
+}
+
+.atmosphere-sunny {
+  background:
+    radial-gradient(circle at 74% 10%, rgba(255, 244, 181, 0.72), transparent 15rem),
+    radial-gradient(circle at 20% 6%, rgba(255, 255, 255, 0.55), transparent 19rem),
+    linear-gradient(160deg, #88d0f1 0%, #a2e0da 48%, #f4d693 100%);
+}
+
+.atmosphere-sunny::before {
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.32), transparent 32rem),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent 42%);
+  opacity: 0.7;
+}
+
+.atmosphere-cloud {
+  background:
+    radial-gradient(ellipse at 20% 18%, rgba(255, 255, 255, 0.55), transparent 18rem),
+    radial-gradient(ellipse at 84% 22%, rgba(244, 250, 255, 0.62), transparent 24rem),
+    linear-gradient(160deg, #99bfd6 0%, #bdd4de 52%, #d7d4bb 100%);
+}
+
+.atmosphere-cloud::before,
+.atmosphere-cloud-night::before {
+  background:
+    radial-gradient(ellipse at 18% 14%, rgba(255, 255, 255, 0.34), transparent 12rem),
+    radial-gradient(ellipse at 72% 20%, rgba(255, 255, 255, 0.28), transparent 15rem);
+  opacity: 0.58;
+  animation: slow-sky 28s ease-in-out infinite alternate;
+}
+
+.atmosphere-rain {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(220, 241, 250, 0.38), transparent 18rem),
+    radial-gradient(circle at 82% 4%, rgba(255, 255, 255, 0.2), transparent 18rem),
+    linear-gradient(160deg, #6b91a8 0%, #8aabb5 48%, #b2bcae 100%);
+}
+
+.atmosphere-rain::before,
+.atmosphere-storm::before {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.22), transparent 46%),
+    radial-gradient(ellipse at 50% -8%, rgba(255, 255, 255, 0.3), transparent 26rem);
+  opacity: 0.62;
+  animation: slow-sky 32s ease-in-out infinite alternate;
+}
+
+.atmosphere-storm {
+  background:
+    radial-gradient(circle at 74% 12%, rgba(243, 232, 178, 0.24), transparent 13rem),
+    radial-gradient(circle at 20% 6%, rgba(255, 255, 255, 0.22), transparent 18rem),
+    linear-gradient(160deg, #52677e 0%, #74899a 48%, #9fa699 100%);
+}
+
+.atmosphere-storm::after {
+  background: radial-gradient(circle at 72% 12%, rgba(255, 247, 203, 0.28), transparent 12rem);
+  opacity: 0.7;
+}
+
+.atmosphere-night {
+  background:
+    radial-gradient(circle at 72% 16%, rgba(220, 237, 255, 0.32), transparent 9rem),
+    linear-gradient(160deg, #172b4a 0%, #254d6b 50%, #467583 100%);
+}
+
+.atmosphere-night::before {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.92) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.62) 0 1px, transparent 1.5px);
+  background-position:
+    0 0,
+    32px 48px;
+  background-size:
+    120px 120px,
+    170px 170px;
+  opacity: 0.48;
+}
+
+.atmosphere-cloud-night {
+  background:
+    radial-gradient(circle at 70% 16%, rgba(220, 237, 255, 0.22), transparent 10rem),
+    linear-gradient(160deg, #253a56 0%, #49697b 52%, #77838a 100%);
+}
+
+@keyframes slow-sky {
+  from {
+    transform: translate3d(-0.6rem, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(0.6rem, 0.35rem, 0) scale(1.02);
+  }
+}
