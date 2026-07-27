@@ -90,8 +90,8 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
         >
           <motion.div
             className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={phone ? false : { opacity: 0 }}
+            animate={phone ? undefined : { opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
             onClick={onClose}
@@ -105,23 +105,23 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
             tabIndex={-1}
             layoutId={reduced || phone ? undefined : layoutId}
             initial={
-              reduced
+              phone
+                ? false
+                : reduced
                 ? { opacity: 0, scale: 0.98 }
-                : phone
-                  ? { opacity: 0, y: 28 }
-                  : undefined
+                : undefined
             }
-            animate={reduced ? { opacity: 1, scale: 1 } : phone ? { opacity: 1, y: 0 } : undefined}
+            animate={phone ? undefined : reduced ? { opacity: 1, scale: 1 } : undefined}
             exit={
-              reduced
+              phone
+                ? undefined
+                : reduced
                 ? { opacity: 0, scale: 0.98 }
-                : phone
-                  ? { opacity: 0, y: 20 }
-                  : undefined
+                : undefined
             }
             transition={
               phone
-                ? { duration: 0.24, ease: [0.16, 1, 0.3, 1] }
+                ? undefined
                 : { type: 'spring', stiffness: 460, damping: 40, mass: 0.7 }
             }
             className="sheet relative flex max-h-[88svh] w-full max-w-2xl flex-col focus:outline-none"
@@ -145,9 +145,9 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
                 first and the text does not appear to stretch with it. */}
             <motion.div
               className="detail-sheet-body min-h-0 flex-1 overflow-y-auto px-5 py-5"
-              initial={reduced ? false : { opacity: 0, y: 8 }}
+              initial={reduced || phone ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, delay: reduced ? 0 : 0.06 }}
+              transition={{ duration: 0.18, delay: reduced || phone ? 0 : 0.06 }}
             >
               {children}
             </motion.div>
