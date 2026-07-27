@@ -108,18 +108,22 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
               reduced
                 ? { opacity: 0, scale: 0.98 }
                 : phone
-                  ? { opacity: 0, y: 36, scale: 0.985 }
+                  ? { opacity: 0, y: 28 }
                   : undefined
             }
-            animate={reduced || phone ? { opacity: 1, y: 0, scale: 1 } : undefined}
+            animate={reduced ? { opacity: 1, scale: 1 } : phone ? { opacity: 1, y: 0 } : undefined}
             exit={
               reduced
                 ? { opacity: 0, scale: 0.98 }
                 : phone
-                  ? { opacity: 0, y: 28, scale: 0.99 }
+                  ? { opacity: 0, y: 20 }
                   : undefined
             }
-            transition={{ type: 'spring', stiffness: phone ? 440 : 460, damping: phone ? 38 : 40, mass: 0.7 }}
+            transition={
+              phone
+                ? { duration: 0.24, ease: [0.16, 1, 0.3, 1] }
+                : { type: 'spring', stiffness: 460, damping: 40, mass: 0.7 }
+            }
             className="sheet relative flex max-h-[88svh] w-full max-w-2xl flex-col focus:outline-none"
             style={accent ? ({ '--tile-glow': accent } as React.CSSProperties) : undefined}
           >
