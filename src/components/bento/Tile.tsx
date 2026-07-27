@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
-import { bentoItem, usePrefersReducedMotion } from '../../lib/motion';
+import { bentoItem, usePhoneLayout, usePrefersReducedMotion } from '../../lib/motion';
 
 type TileProps = {
   label: string;
@@ -34,6 +34,7 @@ export function Tile({
   expanded = false,
 }: TileProps) {
   const reduced = usePrefersReducedMotion();
+  const phone = usePhoneLayout();
   const interactive = Boolean(onOpen);
 
   const body = (
@@ -62,7 +63,7 @@ export function Tile({
     <motion.button
       type="button"
       variants={bentoItem}
-      layoutId={reduced ? undefined : layoutId}
+      layoutId={reduced || phone ? undefined : layoutId}
       onClick={onOpen}
       aria-label={`${label} — open details`}
       className={`${classes} focus-ring text-left`}

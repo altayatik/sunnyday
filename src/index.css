@@ -1052,10 +1052,12 @@ main > * {
   .detail-overlay {
     place-items: end center;
     padding: 0;
+    overscroll-behavior: none;
   }
 
   .detail-overlay > :first-child {
     backdrop-filter: none;
+    touch-action: none;
   }
 
   .detail-overlay .sheet {
@@ -1081,6 +1083,7 @@ main > * {
   .detail-sheet-body {
     padding: 1rem;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }
 

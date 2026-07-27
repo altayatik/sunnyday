@@ -18,6 +18,24 @@ export const usePrefersReducedMotion = () => {
   return reduced;
 };
 
+/** Tracks the breakpoint where cards open as bottom sheets instead of dialogs. */
+export const usePhoneLayout = () => {
+  const [phone, setPhone] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const query = window.matchMedia('(max-width: 767px)');
+    const update = () => setPhone(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  return phone;
+};
+
 /**
  * Counts from the previously shown value to `target`.
  *

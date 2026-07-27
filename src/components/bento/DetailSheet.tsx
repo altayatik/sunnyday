@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { usePrefersReducedMotion } from '../../lib/motion';
+import { usePhoneLayout, usePrefersReducedMotion } from '../../lib/motion';
 
 type DetailSheetProps = {
   open: boolean;
@@ -25,6 +25,7 @@ type DetailSheetProps = {
  */
 export function DetailSheet({ open, onClose, title, layoutId, accent, children }: DetailSheetProps) {
   const reduced = usePrefersReducedMotion();
+  const phone = usePhoneLayout();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -36,11 +37,11 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
     if (!open) return;
 
     restoreFocusRef.current = document.activeElement as HTMLElement | null;
-    const frame = requestAnimationFrame(() => panelRef.current?.focus());
+    const frame = requestAnimationFrame(() => panelRef.current?.focus({ preventScroll: true }));
 
     return () => {
       cancelAnimationFrame(frame);
-      restoreFocusRef.current?.focus?.();
+      restoreFocusRef.current?.focus?.({ preventScroll: true });
     };
   }, [open]);
 
@@ -78,38 +79,15 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
-  // Lock the page behind the sheet, preserving the scroll position.
-  useEffect(() => {
-    if (!open) return;
-
-    const scrollY = window.scrollY;
-    const previous = {
-      overflow: document.body.style.overflow,
-      position: document.body.style.position,
-      top: document.body.style.top,
-      width: document.body.style.width,
-    };
-
-    document.body.style.overflow = 'hidden';
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-    }
-
-    return () => {
-      document.body.style.overflow = previous.overflow;
-      document.body.style.position = previous.position;
-      document.body.style.top = previous.top;
-      document.body.style.width = previous.width;
-      if (window.matchMedia('(max-width: 767px)').matches) window.scrollTo(0, scrollY);
-    };
-  }, [open]);
-
   return (
     <AnimatePresence>
       {open ? (
-        <div className="detail-overlay fixed inset-0 z-50 grid place-items-center p-3 sm:p-6">
+        <div
+          className="detail-overlay fixed inset-0 z-50 grid place-items-center p-3 sm:p-6"
+          onWheel={(event) => {
+            if (!panelRef.current?.contains(event.target as Node)) event.preventDefault();
+          }}
+        >
           <motion.div
             className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
             initial={{ opacity: 0 }}
@@ -125,11 +103,23 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
-            layoutId={reduced ? undefined : layoutId}
-            initial={reduced ? { opacity: 0, scale: 0.98 } : undefined}
-            animate={reduced ? { opacity: 1, scale: 1 } : undefined}
-            exit={reduced ? { opacity: 0, scale: 0.98 } : undefined}
-            transition={{ type: 'spring', stiffness: 460, damping: 40, mass: 0.7 }}
+            layoutId={reduced || phone ? undefined : layoutId}
+            initial={
+              reduced
+                ? { opacity: 0, scale: 0.98 }
+                : phone
+                  ? { opacity: 0, y: 36, scale: 0.985 }
+                  : undefined
+            }
+            animate={reduced || phone ? { opacity: 1, y: 0, scale: 1 } : undefined}
+            exit={
+              reduced
+                ? { opacity: 0, scale: 0.98 }
+                : phone
+                  ? { opacity: 0, y: 28, scale: 0.99 }
+                  : undefined
+            }
+            transition={{ type: 'spring', stiffness: phone ? 440 : 460, damping: phone ? 38 : 40, mass: 0.7 }}
             className="sheet relative flex max-h-[88svh] w-full max-w-2xl flex-col focus:outline-none"
             style={accent ? ({ '--tile-glow': accent } as React.CSSProperties) : undefined}
           >
