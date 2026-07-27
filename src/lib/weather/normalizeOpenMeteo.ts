@@ -1,9 +1,19 @@
-import type { DailySunnyData, HourlySunnyData, LocationResult, NwsAlert, SunnyDaySummary } from '../../types/weather';
+import type {
+  AirQualityData,
+  DailySunnyData,
+  HourlySunnyData,
+  LocationResult,
+  NwsAlert,
+  SunnyDaySummary,
+} from '../../types/weather';
 import { conditionFromWeather } from './weatherCodes';
 import { applyAlertScoreCap, labelForScore, scoreSunnyDay } from './sunnyDayScore';
 import { round } from './units';
-import { buildAiInsight, buildSummaryText } from './summaries';
+import { buildSummaryText } from './summaries';
+import { buildInsights } from './insights';
+import { deriveScene } from './weatherScene';
 import { dateKeyInTimeZone } from '../date';
+import { stabiliseScore } from './scoreStability';
 
 type OpenMeteoForecast = {
   latitude: number;
@@ -119,6 +129,16 @@ export const normalizeOpenMeteo = (
   const scoringDaily = selectedDaily ? [selectedDaily, ...daily.filter((day) => day.date !== selectedDaily.date)] : daily;
   const score = scoreSunnyDay(scoringHourly, scoringDaily);
   const summaryText = buildSummaryText(score.label, current, scoringHourly, scoringDaily, timezone);
+  const insights = buildInsights(
+    score,
+    score.score,
+    score.label,
+    current,
+    scoringHourly,
+    scoringDaily,
+    selectedDateKey,
+    timezone,
+  );
 
   return {
     location: { ...location, timezone },
@@ -130,46 +150,113 @@ export const normalizeOpenMeteo = (
     sunnyDayScore: score.score,
     scoreLabel: score.label,
     summaryText,
-    aiInsight: buildAiInsight(score.label, score.score, current, scoringHourly, scoringDaily, score.reasons, timezone),
+    aiInsight: insights.paragraph,
     reasons: score.reasons,
+    insights,
+    breakdown: score.breakdown,
+    scene: deriveScene(current, selectedDaily, scoringDaily[0]?.temperatureMaxF ?? null),
     sources: {
       openMeteo: 'ok',
       models: 'loading',
       rainViewer: 'loading',
       nws: 'loading',
+      airQuality: 'loading',
     },
     generatedAt: new Date().toISOString(),
   };
 };
 
-export const applyNwsAlerts = (summary: SunnyDaySummary, nwsAlerts: NwsAlert[]): SunnyDaySummary => {
+const isHeatAlert = (alert: NwsAlert) => /heat/i.test(alert.event);
+
+/**
+ * Single recompute path for the whole summary.
+ *
+ * Everything that can arrive late - model consensus, NWS alerts, air
+ * quality - funnels through here, so the score, the label, the breakdown,
+ * the prose, and the background scene are always derived from the same
+ * inputs. Previously the alert path rebuilt some of these and left others
+ * stale, which is how the headline could describe a day the score no longer
+ * agreed with.
+ */
+export const rescoreSummary = (
+  summary: SunnyDaySummary,
+  nwsAlerts: NwsAlert[] = summary.nwsAlerts ?? [],
+  airQuality: AirQualityData | undefined = summary.airQuality,
+): SunnyDaySummary => {
   const selectedDaily = summary.daily.find((day) => day.date === summary.selectedDate) ?? summary.daily[0];
   const scoringDaily = selectedDaily
     ? [selectedDaily, ...summary.daily.filter((day) => day.date !== selectedDaily.date)]
     : summary.daily;
-  const score = scoreSunnyDay(summary.scoringHourly, scoringDaily, nwsAlerts);
-  const primaryBaseScore = scoreSunnyDay(summary.scoringHourly, scoringDaily).score;
-  const consensusBaseScore = summary.consensusBaseScore ?? primaryBaseScore;
-  const alertAdjustment = Math.max(0, primaryBaseScore - score.score);
-  const finalScore = Math.round(applyAlertScoreCap(Math.max(0, consensusBaseScore - alertAdjustment), nwsAlerts));
+
+  const score = scoreSunnyDay(summary.scoringHourly, scoringDaily, nwsAlerts, airQuality);
+
+  // The consensus base score comes from the model ensemble, which knows
+  // nothing about alerts or air quality. Apply those as a delta against the
+  // ensemble rather than discarding the ensemble, so the displayed score
+  // still reflects the models that produced it.
+  const cleanScore = scoreSunnyDay(summary.scoringHourly, scoringDaily).score;
+  const consensusBaseScore = summary.consensusBaseScore ?? cleanScore;
+  const adjustment = Math.max(0, cleanScore - score.score);
+  const computedScore = Math.round(applyAlertScoreCap(Math.max(0, consensusBaseScore - adjustment), nwsAlerts));
+
+  // Damp meaningless movement, but only once the models have actually been
+  // compared. Stabilising the single-run score would pin the display to a
+  // provisional number, and stabilising each model's own summary would have
+  // every model collide on the same storage key.
+  const finalScore =
+    summary.consensusBaseScore !== undefined
+      ? stabiliseScore(
+          `${summary.location.latitude.toFixed(2)},${summary.location.longitude.toFixed(2)}`,
+          summary.selectedDate,
+          computedScore,
+        )
+      : computedScore;
   const finalLabel = labelForScore(finalScore);
+
+  const insights = buildInsights(
+    score,
+    finalScore,
+    finalLabel,
+    summary.current,
+    summary.scoringHourly,
+    scoringDaily,
+    summary.selectedDate,
+    summary.location.timezone,
+    nwsAlerts,
+    airQuality,
+  );
+
   const accuracyPhrase = summary.accuracy ? ` ${summary.accuracy.summary}` : '';
 
   return {
     ...summary,
     nwsAlerts,
+    airQuality,
     sunnyDayScore: finalScore,
     scoreLabel: finalLabel,
-    summaryText: buildSummaryText(finalLabel, summary.current, summary.scoringHourly, scoringDaily, summary.location.timezone),
-    aiInsight: `${buildAiInsight(
+    summaryText: buildSummaryText(
       finalLabel,
-      finalScore,
       summary.current,
       summary.scoringHourly,
       scoringDaily,
-      score.reasons,
       summary.location.timezone,
-    )}${accuracyPhrase}`,
+    ),
+    aiInsight: `${insights.paragraph}${accuracyPhrase}`,
     reasons: score.reasons,
+    insights,
+    breakdown: score.breakdown,
+    scene: deriveScene(
+      summary.current,
+      selectedDaily,
+      scoringDaily[0]?.temperatureMaxF ?? null,
+      nwsAlerts.some(isHeatAlert),
+    ),
   };
 };
+
+/** Backwards-compatible alias; alerts are just one input to the rescore. */
+export const applyNwsAlerts = (summary: SunnyDaySummary, nwsAlerts: NwsAlert[]): SunnyDaySummary =>
+  rescoreSummary(summary, nwsAlerts, summary.airQuality);
+
+export const applyAirQuality = (summary: SunnyDaySummary, airQuality: AirQualityData): SunnyDaySummary =>
+  rescoreSummary(summary, summary.nwsAlerts ?? [], airQuality);

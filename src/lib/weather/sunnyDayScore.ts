@@ -1,16 +1,23 @@
-import type { DailySunnyData, HourlySunnyData, NwsAlert, ScoreLabel } from '../../types/weather';
+import type {
+  AirQualityData,
+  DailySunnyData,
+  HourlySunnyData,
+  InsightFactor,
+  NwsAlert,
+  ScoreBreakdown,
+  ScoreLabel,
+} from '../../types/weather';
 import { clamp } from './units';
 
 export type ScoreResult = {
   score: number;
   label: ScoreLabel;
   reasons: string[];
-  breakdown: {
-    sky: number;
-    precipitation: number;
-    comfort: number;
-    safety: number;
-  };
+  /** Structured factors, shared with the insights engine and SunnyDay iOS. */
+  positives: InsightFactor[];
+  negatives: InsightFactor[];
+  recommendations: string[];
+  breakdown: ScoreBreakdown;
 };
 
 const average = (values: Array<number | null | undefined>) => {
@@ -58,6 +65,21 @@ export const applyAlertScoreCap = (score: number, alerts: NwsAlert[]) => {
 };
 
 /**
+ * Category weights. Precipitation dominates because rain is the single
+ * factor most likely to cancel an outdoor plan; air quality is deliberately
+ * the smallest term, since it modifies a good day rather than defining it -
+ * but it can still cost ten points, which is the difference between
+ * "Great SunnyDay" and "Pretty Good".
+ */
+const weights = {
+  sky: 0.22,
+  precipitation: 0.32,
+  comfort: 0.22,
+  safety: 0.14,
+  air: 0.1,
+} as const;
+
+/**
  * Bounded category model shared with SunnyDay iOS.
  *
  * The old scorer stacked every penalty against one 100-point bucket, could
@@ -70,6 +92,7 @@ export const scoreSunnyDay = (
   hourly: HourlySunnyData[],
   daily: DailySunnyData[],
   alerts: NwsAlert[] = [],
+  airQuality?: AirQualityData,
 ): ScoreResult => {
   const current = hourly[0];
   const daytime = hourly.filter((hour) => hour.isDay !== false).slice(0, 12);
@@ -91,32 +114,98 @@ export const scoreSunnyDay = (
   const currentSnow = currentCode !== null && snowCodes.has(currentCode);
   const currentPrecipitation = current?.precipitationInches ?? 0;
   const currentHeavyPrecipitation = currentWet && currentPrecipitation >= 0.1;
+
   const reasons: string[] = [];
+  const positives: InsightFactor[] = [];
+  const negatives: InsightFactor[] = [];
+  const recommendations: string[] = [];
+
+  const record = (factor: Omit<InsightFactor, 'id'> & { positive?: boolean }) => {
+    const { positive = false, ...rest } = factor;
+    const entry: InsightFactor = { ...rest, id: `${rest.title}-${rest.tone}` };
+    reasons.push(entry.detail);
+    if (positive) positives.push(entry);
+    else negatives.push(entry);
+  };
 
   let precipitation = 100;
   if (currentStorm) {
     precipitation = 30;
-    reasons.push('Thunderstorms are active now, so outdoor confidence is low.');
+    record({
+      title: 'Thunderstorms now',
+      detail: 'Thunderstorms are active now, so outdoor confidence is low.',
+      icon: 'cloud-lightning',
+      tone: 'alert',
+      points: 70,
+    });
+    recommendations.push('Wait for the thunderstorms to clear before heading outside.');
   } else if (currentSnow) {
     precipitation = 45;
-    reasons.push('Wintry precipitation is active now.');
+    record({
+      title: 'Wintry precipitation',
+      detail: 'Wintry precipitation is active now.',
+      icon: 'cloud-snow',
+      tone: 'rain',
+      points: 55,
+    });
+    recommendations.push('Allow extra travel time and dress for wet, cold footing.');
   } else if (currentWet) {
     precipitation = 50;
-    reasons.push('Wet weather is active now.');
+    record({
+      title: 'Wet weather now',
+      detail: 'Wet weather is active now.',
+      icon: 'cloud-rain',
+      tone: 'rain',
+      points: 50,
+    });
+    recommendations.push('Take a rain layer, or wait for the current band to move through.');
   } else if (peakRain >= 80) {
     precipitation = 45;
-    reasons.push(`Rain risk is very high in the selected-day window (${Math.round(peakRain)}%).`);
+    record({
+      title: 'Very high rain risk',
+      detail: `Rain risk is very high in the selected-day window (${Math.round(peakRain)}%).`,
+      icon: 'umbrella',
+      tone: 'rain',
+      points: 55,
+    });
+    recommendations.push('Plan around cover; a dry stretch is unlikely to hold.');
   } else if (peakRain >= 60) {
     precipitation = 60;
-    reasons.push(`Rain is likely in the selected-day window (${Math.round(peakRain)}%).`);
+    record({
+      title: 'Rain likely',
+      detail: `Rain is likely in the selected-day window (${Math.round(peakRain)}%).`,
+      icon: 'umbrella',
+      tone: 'rain',
+      points: 40,
+    });
+    recommendations.push('Carry a rain layer and keep plans flexible.');
   } else if (peakRain >= 40) {
     precipitation = 75;
-    reasons.push(`Showers are possible in the selected-day window (${Math.round(peakRain)}% peak).`);
+    record({
+      title: 'Showers possible',
+      detail: `Showers are possible in the selected-day window (${Math.round(peakRain)}% peak).`,
+      icon: 'cloud-rain',
+      tone: 'rain',
+      points: 25,
+    });
   } else if (peakRain >= 20) {
     precipitation = 88;
-    reasons.push(`Rain risk is present but manageable (${Math.round(peakRain)}% peak).`);
+    record({
+      title: 'Manageable rain risk',
+      detail: `Rain risk is present but manageable (${Math.round(peakRain)}% peak).`,
+      icon: 'cloud-sun',
+      tone: 'rain',
+      points: 12,
+    });
   } else {
-    reasons.push('Precipitation risk is low in the selected-day window.');
+    record({
+      title: 'Low precipitation risk',
+      detail: 'Precipitation risk is low in the selected-day window.',
+      icon: 'sun',
+      tone: 'sun',
+      points: 0,
+      positive: true,
+    });
   }
 
   if (precipitationAmount >= 0.5) precipitation -= 20;
@@ -131,11 +220,30 @@ export const scoreSunnyDay = (
   else if (averageCloud >= 35) sky = 90;
 
   if (averageCloud >= 65) {
-    reasons.push(`Cloud cover is fairly high around ${Math.round(averageCloud)}%.`);
+    record({
+      title: 'Heavy cloud cover',
+      detail: `Cloud cover is fairly high around ${Math.round(averageCloud)}%.`,
+      icon: 'cloud',
+      tone: 'cloud',
+      points: averageCloud >= 80 ? 50 : 35,
+    });
   } else if (averageCloud >= 35) {
-    reasons.push(`Some clouds are present around ${Math.round(averageCloud)}%.`);
+    record({
+      title: 'Some clouds',
+      detail: `Some clouds are present around ${Math.round(averageCloud)}%.`,
+      icon: 'cloud-sun',
+      tone: 'cloud',
+      points: 15,
+    });
   } else {
-    reasons.push('Cloud cover remains friendly for open-sky conditions.');
+    record({
+      title: 'Open sky',
+      detail: 'Cloud cover remains friendly for open-sky conditions.',
+      icon: 'sun',
+      tone: 'sun',
+      points: 0,
+      positive: true,
+    });
   }
   if (lowCloud >= 70) sky -= 5;
 
@@ -144,28 +252,209 @@ export const scoreSunnyDay = (
       ? selectedDay.sunshineDurationSeconds / selectedDay.daylightDurationSeconds
       : null;
   if (sunshineRatio !== null && sunshineRatio < 0.35) sky -= 8;
-  else if (sunshineRatio !== null && sunshineRatio >= 0.7 && !currentWet) sky += 3;
+  else if (sunshineRatio !== null && sunshineRatio >= 0.7 && !currentWet) {
+    sky += 3;
+    record({
+      title: 'Strong sunshine',
+      detail: `Sunshine covers about ${Math.round(sunshineRatio * 100)}% of the daylight hours.`,
+      icon: 'sun',
+      tone: 'sun',
+      points: 0,
+      positive: true,
+    });
+  }
   sky = clamp(sky, 0, 100);
 
   let comfort = 100;
   if (humidity >= 85) {
     comfort -= 12;
-    reasons.push('Humidity is very high and may feel sticky.');
+    record({
+      title: 'Very humid',
+      detail: 'Humidity is very high and may feel sticky.',
+      icon: 'droplets',
+      tone: 'comfort',
+      points: 12,
+    });
   } else if (humidity >= 70) {
     comfort -= 6;
-    reasons.push('Humidity is elevated but not a deal-breaker.');
+    record({
+      title: 'Humid',
+      detail: 'Humidity is elevated but not a deal-breaker.',
+      icon: 'droplets',
+      tone: 'comfort',
+      points: 6,
+    });
   }
 
-  if (apparentTemperature >= 105) comfort -= 25;
-  else if (apparentTemperature >= 95) comfort -= 15;
-  else if (apparentTemperature >= 88) comfort -= 8;
-  else if (apparentTemperature <= 35) comfort -= 10;
+  if (apparentTemperature >= 105) {
+    comfort -= 25;
+    record({
+      title: 'Dangerous heat',
+      detail: `It feels near ${Math.round(apparentTemperature)}°, which is hazardous for sustained activity.`,
+      icon: 'thermometer-sun',
+      tone: 'comfort',
+      points: 25,
+    });
+    recommendations.push('Limit outdoor time to early morning or after sunset, and hydrate steadily.');
+  } else if (apparentTemperature >= 95) {
+    comfort -= 15;
+    record({
+      title: 'Hot',
+      detail: `It feels near ${Math.round(apparentTemperature)}°, so comfort is capped.`,
+      icon: 'thermometer-sun',
+      tone: 'comfort',
+      points: 15,
+    });
+    recommendations.push('Favour shade and take hydration breaks.');
+  } else if (apparentTemperature >= 88) {
+    comfort -= 8;
+    record({
+      title: 'Warm',
+      detail: `It feels near ${Math.round(apparentTemperature)}°.`,
+      icon: 'thermometer-sun',
+      tone: 'comfort',
+      points: 8,
+    });
+  } else if (apparentTemperature <= 35) {
+    comfort -= 10;
+    record({
+      title: 'Cold',
+      detail: `It feels near ${Math.round(apparentTemperature)}°, so layers matter.`,
+      icon: 'thermometer-snowflake',
+      tone: 'comfort',
+      points: 10,
+    });
+    recommendations.push('Dress in layers and cover exposed skin.');
+  } else if (apparentTemperature >= 60 && apparentTemperature <= 80) {
+    record({
+      title: 'Comfortable air',
+      detail: `It feels near ${Math.round(apparentTemperature)}°, which is close to ideal.`,
+      icon: 'thermometer-sun',
+      tone: 'comfort',
+      points: 0,
+      positive: true,
+    });
+  }
 
-  if (gusts >= 35) comfort -= 12;
-  else if (gusts >= 25) comfort -= 6;
-  if (uv >= 8) comfort -= 5;
-  else if (uv >= 6) comfort -= 2;
+  if (gusts >= 35) {
+    comfort -= 12;
+    record({
+      title: 'Strong gusts',
+      detail: `Gusts reach about ${Math.round(gusts)} mph.`,
+      icon: 'wind',
+      tone: 'wind',
+      points: 12,
+    });
+    recommendations.push('Secure loose items; umbrellas will struggle in these gusts.');
+  } else if (gusts >= 25) {
+    comfort -= 6;
+    record({
+      title: 'Breezy',
+      detail: `Gusts reach about ${Math.round(gusts)} mph.`,
+      icon: 'wind',
+      tone: 'wind',
+      points: 6,
+    });
+  }
+
+  if (uv >= 8) {
+    comfort -= 5;
+    record({
+      title: 'Very high UV',
+      detail: `UV peaks near ${Math.round(uv)}, so unprotected skin burns quickly.`,
+      icon: 'sun-medium',
+      tone: 'uv',
+      points: 5,
+    });
+    recommendations.push('Use sunscreen and reapply; seek shade around midday.');
+  } else if (uv >= 6) {
+    comfort -= 2;
+    record({
+      title: 'High UV',
+      detail: `UV peaks near ${Math.round(uv)}.`,
+      icon: 'sun-medium',
+      tone: 'uv',
+      points: 2,
+    });
+    recommendations.push('Sunscreen is worth it today.');
+  }
   comfort = clamp(comfort, 0, 100);
+
+  // Air quality. Absent data scores a neutral 100 rather than penalising a
+  // location simply because the provider has no coverage there.
+  let air = 100;
+  if (airQuality) {
+    const aqi = airQuality.peakAqi ?? airQuality.usAqi;
+    if (aqi !== null) {
+      if (aqi > 200) {
+        air = 10;
+        record({
+          title: 'Very unhealthy air',
+          detail: `Air quality index peaks near ${Math.round(aqi)}, which is unsafe for outdoor exertion.`,
+          icon: 'wind',
+          tone: 'air',
+          points: 90,
+        });
+        recommendations.push('Keep outdoor exertion short and consider staying indoors.');
+      } else if (aqi > 150) {
+        air = 32;
+        record({
+          title: 'Unhealthy air',
+          detail: `Air quality index peaks near ${Math.round(aqi)}${
+            airQuality.dominantPollutant ? `, led by ${airQuality.dominantPollutant}` : ''
+          }.`,
+          icon: 'wind',
+          tone: 'air',
+          points: 68,
+        });
+        recommendations.push('Reduce strenuous outdoor activity; sensitive groups should stay in.');
+      } else if (aqi > 100) {
+        air = 58;
+        record({
+          title: 'Poor air for sensitive groups',
+          detail: `Air quality index peaks near ${Math.round(aqi)}${
+            airQuality.dominantPollutant ? `, led by ${airQuality.dominantPollutant}` : ''
+          }.`,
+          icon: 'wind',
+          tone: 'air',
+          points: 42,
+        });
+        recommendations.push('If you are asthmatic or sensitive, keep intense activity short.');
+      } else if (aqi > 50) {
+        air = 84;
+        record({
+          title: 'Moderate air quality',
+          detail: `Air quality index is around ${Math.round(aqi)} - acceptable for most people.`,
+          icon: 'wind',
+          tone: 'air',
+          points: 16,
+        });
+      } else {
+        record({
+          title: 'Clean air',
+          detail: `Air quality index is around ${Math.round(aqi)}.`,
+          icon: 'wind',
+          tone: 'air',
+          points: 0,
+          positive: true,
+        });
+      }
+    }
+
+    const peakPollen = airQuality.peakPollen;
+    if (peakPollen && peakPollen.level >= 3) {
+      air -= peakPollen.level >= 4 ? 14 : 8;
+      record({
+        title: `${peakPollen.levelLabel} ${peakPollen.label.toLowerCase()} pollen`,
+        detail: `${peakPollen.label} pollen peaks near ${peakPollen.grainsPerM3} grains/m³ today.`,
+        icon: 'flower',
+        tone: 'air',
+        points: peakPollen.level >= 4 ? 14 : 8,
+      });
+      recommendations.push('Allergy sufferers should medicate ahead of time and rinse off afterwards.');
+    }
+  }
+  air = clamp(air, 0, 100);
 
   let safety = currentStorm ? 20 : currentSnow ? 60 : currentHeavyPrecipitation ? 55 : currentWet ? 70 : 100;
   const primaryAlert = [...alerts].sort((a, b) => alertPriority(b) - alertPriority(a))[0];
@@ -179,10 +468,26 @@ export const scoreSunnyDay = (
   else if (priority >= 50) alertAdjustedSafety = Math.min(alertAdjustedSafety, 75);
 
   if (primaryAlert && priority >= 50) {
-    reasons.unshift(`${primaryAlert.event} is active and is the main safety constraint.`);
+    const detail = `${primaryAlert.event} is active and is the main safety constraint.`;
+    reasons.unshift(detail);
+    negatives.unshift({
+      id: `alert-${primaryAlert.id}`,
+      title: primaryAlert.event,
+      detail,
+      icon: 'alert-triangle',
+      tone: 'alert',
+      points: 100 - alertAdjustedSafety,
+    });
+    recommendations.unshift('Check the official alert text before committing to outdoor plans.');
   }
 
-  let score = sky * 0.25 + precipitation * 0.35 + comfort * 0.25 + alertAdjustedSafety * 0.15;
+  let score =
+    sky * weights.sky +
+    precipitation * weights.precipitation +
+    comfort * weights.comfort +
+    alertAdjustedSafety * weights.safety +
+    air * weights.air;
+
   if (priority >= 100) score = Math.min(score, 8);
   else if (priority >= 90) score = Math.min(score, 20);
   else if (priority >= 80) score = Math.min(score, 25);
@@ -194,16 +499,34 @@ export const scoreSunnyDay = (
   else if (peakRain >= 80) score = Math.min(score, 58);
   else if (peakRain >= 60) score = Math.min(score, 72);
 
+  // Air quality can cap an otherwise pristine day. Nothing is a "Great
+  // SunnyDay" when the air is unhealthy to breathe.
+  const peakAqi = airQuality?.peakAqi ?? airQuality?.usAqi ?? null;
+  if (peakAqi !== null) {
+    if (peakAqi > 200) score = Math.min(score, 30);
+    else if (peakAqi > 150) score = Math.min(score, 52);
+    else if (peakAqi > 100) score = Math.min(score, 74);
+  }
+
   const rounded = Math.round(clamp(score, 0, 100));
+
+  // Order negatives by what actually cost the most, so the UI leads with the
+  // real reason rather than whichever check happened to run first.
+  negatives.sort((a, b) => b.points - a.points);
+
   return {
     score: rounded,
     label: labelForScore(rounded),
     reasons: reasons.slice(0, 5),
+    positives,
+    negatives,
+    recommendations: [...new Set(recommendations)].slice(0, 4),
     breakdown: {
       sky: Math.round(sky),
       precipitation: Math.round(precipitation),
       comfort: Math.round(comfort),
       safety: Math.round(alertAdjustedSafety),
+      air: Math.round(air),
     },
   };
 };

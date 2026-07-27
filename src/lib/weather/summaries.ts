@@ -46,35 +46,6 @@ export const buildSummaryText = (
   return `${label}: ${current.conditionLabel.toLowerCase()} with ${cloud} and no strong precipitation signal in the next day.`;
 };
 
-export const buildAiInsight = (
-  label: ScoreLabel,
-  score: number,
-  current: HourlySunnyData,
-  hourly: HourlySunnyData[],
-  daily: DailySunnyData[],
-  reasons: string[],
-  timeZone?: string,
-) => {
-  const rainWindow = findRainWindow(hourly.slice(0, 24), 35);
-  const today = daily[0];
-  const heat = current.apparentTemperatureF ?? current.temperatureF;
-  const sunshine =
-    today?.sunshineDurationSeconds && today.daylightDurationSeconds
-      ? Math.round((today.sunshineDurationSeconds / today.daylightDurationSeconds) * 100)
-      : null;
-  const activeWet = hasWetSignal(current);
-  const rainPhrase = activeWet
-    ? `The current weather code is already flagging wet or stormy conditions.`
-    : rainWindow
-      ? `The first meaningful rain signal appears near ${formatHour(rainWindow.time, timeZone)}.`
-    : `There is no strong rain window in the selected period.`;
-  const heatPhrase = heat !== null && heat >= 88 ? `It will feel hot around ${Math.round(heat)} degrees, so comfort is capped.` : '';
-  const sunshinePhrase = sunshine === null ? '' : `Sunshine quality is tracking near ${sunshine} percent of daylight.`;
-  const reasonPhrase = reasons.length ? reasons.slice(0, 3).join(' ') : 'The model signal is fairly balanced.';
-
-  return `${label} at ${score}/100. ${reasonPhrase} ${rainPhrase} ${heatPhrase} ${sunshinePhrase}`.replace(/\s+/g, ' ').trim();
-};
-
 export const precipitationLabel = (probability: number | null, inchesValue: number | null) => {
   const probabilityValue = probability ?? 0;
   const amount = inchesValue ?? 0;

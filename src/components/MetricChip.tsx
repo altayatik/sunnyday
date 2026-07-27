@@ -16,10 +16,10 @@ const toneClass = {
 
 export function MetricChip({ icon: Icon, label, value, tone = 'neutral' }: MetricChipProps) {
   return (
-    <div className={`flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2 ${toneClass[tone]}`}>
+    <div className={`flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2 ${toneClass[tone]}`}>
       <Icon aria-hidden="true" className="size-4 shrink-0" />
       <div className="min-w-0">
-        <p className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/48">{label}</p>
+        <p className="truncate label-caps">{label}</p>
         <p className="truncate text-sm font-semibold text-white">{value}</p>
       </div>
     </div>

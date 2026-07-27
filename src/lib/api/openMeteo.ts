@@ -37,11 +37,17 @@ export const dailyFields = [
   'uv_index_max',
 ];
 
-export const fetchSunnyForecast = async (location: LocationResult, selectedDate?: string): Promise<SunnyDaySummary> => {
+export const fetchSunnyForecast = async (
+  location: LocationResult,
+  selectedDate?: string,
+  signal?: AbortSignal,
+): Promise<SunnyDaySummary> => {
   const roundedLat = location.latitude.toFixed(3);
   const roundedLon = location.longitude.toFixed(3);
   const dateKey = selectedDate ?? 'today';
-  const cacheKey = `sunnyday:forecast:v10:${roundedLat},${roundedLon}:${dateKey}`;
+  // Cache version bumped: the summary shape now carries insights, breakdown,
+  // scene, and air quality, so v10 entries would deserialise incomplete.
+  const cacheKey = `sunnyday:forecast:v11:${roundedLat},${roundedLon}:${dateKey}`;
   const cached = readCache<SunnyDaySummary>(cacheKey);
   if (cached) return cached;
 
@@ -57,7 +63,7 @@ export const fetchSunnyForecast = async (location: LocationResult, selectedDate?
     forecast_days: '7',
   });
 
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { signal });
   if (!response.ok) throw new Error('Open-Meteo forecast failed.');
 
   const data = await response.json();

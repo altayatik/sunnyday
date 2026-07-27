@@ -54,12 +54,15 @@ export type SunnyDaySources = {
   models: SourceState;
   rainViewer: SourceState;
   nws: SourceState;
+  airQuality: SourceState;
 };
 
 export type ForecastSourceScore = {
   id: string;
   label: string;
   score: number;
+  /** False when the model returned no usable data for the selected day. */
+  covered: boolean;
 };
 
 export type ForecastAccuracy = {
@@ -67,11 +70,49 @@ export type ForecastAccuracy = {
   label: 'High' | 'Good' | 'Mixed' | 'Low';
   summary: string;
   sourceCount: number;
+  /** Models that actually returned data for the selected day. */
+  coveredCount: number;
   temperatureSpreadF: number;
   precipitationSpread: number;
   cloudSpread: number;
   scoreSpread: number;
+  /** Interquartile range of model scores; drives the consensus band. */
+  scoreInterquartileRange: number;
+  /** Low/high consensus band shown as an uncertainty range on the score. */
+  scoreLow: number;
+  scoreHigh: number;
+  conditionAgreement: number;
   sources: ForecastSourceScore[];
+};
+
+export type PollenKind = 'alder' | 'birch' | 'grass' | 'mugwort' | 'olive' | 'ragweed';
+
+export type PollenReading = {
+  kind: PollenKind;
+  label: string;
+  grainsPerM3: number;
+  /** 0 = none, 1 = low, 2 = moderate, 3 = high, 4 = very high. */
+  level: number;
+  levelLabel: string;
+};
+
+export type AirQualityData = {
+  /** US AQI at the reference hour. Null when the provider has no coverage. */
+  usAqi: number | null;
+  europeanAqi: number | null;
+  category: string;
+  categoryLevel: number;
+  pm25: number | null;
+  pm10: number | null;
+  ozone: number | null;
+  nitrogenDioxide: number | null;
+  /** Peak US AQI across the scoring window. */
+  peakAqi: number | null;
+  dominantPollutant: string | null;
+  pollen: PollenReading[];
+  peakPollen: PollenReading | null;
+  /** Open-Meteo only models pollen over Europe. */
+  pollenAvailable: boolean;
 };
 
 export type RainViewerFrame = {
@@ -92,6 +133,55 @@ export type NwsAlert = {
   headline?: string;
 };
 
+/** Mirrors `WeatherScene` in SunnyDay iOS. */
+export type WeatherSceneId =
+  | 'clear-day'
+  | 'clear-night'
+  | 'partly-cloudy-day'
+  | 'partly-cloudy-night'
+  | 'cloudy'
+  | 'overcast'
+  | 'fog'
+  | 'rain'
+  | 'showers'
+  | 'storm'
+  | 'snow'
+  | 'heat';
+
+export type InsightTone = 'sun' | 'rain' | 'cloud' | 'comfort' | 'uv' | 'wind' | 'air' | 'alert' | 'neutral';
+
+export type InsightFactor = {
+  id: string;
+  title: string;
+  detail: string;
+  icon: string;
+  tone: InsightTone;
+  /** Points this factor cost the score. 0 for positives. */
+  points: number;
+};
+
+export type OutdoorWindow = {
+  startTime: string;
+  endTime: string;
+  hours: number;
+  score: number;
+  label: string;
+  detail: string;
+};
+
+export type InsightBundle = {
+  /** One-to-three sentence headline read, shown on the hero. */
+  headline: string;
+  /** The longer connected paragraph shown on the Today page. */
+  paragraph: string;
+  positives: InsightFactor[];
+  negatives: InsightFactor[];
+  recommendations: string[];
+  bestWindow: OutdoorWindow | null;
+  /** Ranked alternative days when today is poor. */
+  betterDay: { date: string; score: number; label: string } | null;
+};
+
 export type SunnyDaySummary = {
   location: LocationResult;
   selectedDate: string;
@@ -104,10 +194,22 @@ export type SunnyDaySummary = {
   summaryText: string;
   aiInsight: string;
   reasons: string[];
+  insights: InsightBundle;
+  breakdown: ScoreBreakdown;
+  scene: WeatherSceneId;
   consensusBaseScore?: number;
   accuracy?: ForecastAccuracy;
+  airQuality?: AirQualityData;
   sources: SunnyDaySources;
   rainViewer?: RainViewerData;
   nwsAlerts?: NwsAlert[];
   generatedAt: string;
+};
+
+export type ScoreBreakdown = {
+  sky: number;
+  precipitation: number;
+  comfort: number;
+  safety: number;
+  air: number;
 };

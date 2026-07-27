@@ -18,11 +18,23 @@
   box-sizing: border-box;
 }
 
+/*
+ * The app is a fixed viewport, not a document. Nothing scrolls except the
+ * inside of a detail sheet, so every page has to earn its space rather than
+ * running off the bottom.
+ */
+html,
 body {
   min-width: 320px;
-  min-height: 100svh;
+  height: 100%;
   margin: 0;
+  overflow: hidden;
   background: #9ecfe0;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
 }
 
 button,
@@ -34,16 +46,108 @@ button {
   cursor: pointer;
 }
 
+/*
+ * Type scale.
+ *
+ * The app previously mixed ad-hoc Tailwind sizes with one-off values like
+ * text-[0.65rem], so labels drifted between 10px and 12px depending on the
+ * component. A fixed ladder keeps the hierarchy readable at every width.
+ */
+:root {
+  --text-label: 0.6875rem;
+  --text-small: 0.8125rem;
+  --text-body: 0.9375rem;
+  --text-title: 1.0625rem;
+  --text-figure: 1.625rem;
+  --text-display: clamp(2.25rem, 5vw, 3rem);
+  --text-hero: clamp(2.75rem, 7vw, 4rem);
+
+  --radius-panel: 1.15rem;
+  --radius-inner: 0.85rem;
+
+  /* Overridden per scene below. */
+  --accent-ink: #b9f2ff;
+  --accent-line: rgba(160, 232, 255, 0.3);
+  --accent-wash: rgba(160, 232, 255, 0.14);
+  --accent-bar: linear-gradient(90deg, #7ee3d6, #b9f2ff);
+}
+
+/*
+ * Surface tiers.
+ *
+ * Everything used to be one `.glass` treatment, which made the page read as
+ * an undifferentiated stack of identical cards and — more expensively — put a
+ * live 26px backdrop blur on roughly ten full-width elements. With an
+ * animating canvas behind them that is a lot of per-frame compositing.
+ *
+ * Three tiers instead: one strong blur for the hero, a lighter one for
+ * panels, and flat tinted fills for tiles and inset rows, which cost nothing.
+ * (This is the same discipline the iOS app already applies with its
+ * tileSurface / real-glass split.)
+ */
+.surface-hero,
+.surface-panel {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-panel);
+}
+
+.surface-hero {
+  border-color: rgba(255, 255, 255, 0.38);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.14)),
+    rgba(16, 38, 50, 0.3);
+  box-shadow:
+    0 28px 80px rgba(20, 46, 64, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.surface-panel {
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.09)),
+    rgba(16, 38, 50, 0.24);
+  box-shadow:
+    0 12px 34px rgba(20, 46, 64, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px) saturate(1.08);
+}
+
+/* Flat fills - no blur, so these are free to use as often as needed. */
+.surface-tile {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-inner);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.surface-inset {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-inner);
+  background: rgba(9, 26, 36, 0.22);
+}
+
+/* Accent-tinted tile, coloured by the active scene. */
+.surface-accent {
+  min-width: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-inner);
+  background: var(--accent-wash);
+}
+
+/* Kept so any stray usage still renders as a panel rather than unstyled. */
 .glass {
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-panel);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.16)),
-    rgba(18, 42, 54, 0.28);
+    linear-gradient(150deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.09)),
+    rgba(16, 38, 50, 0.24);
   box-shadow:
-    0 24px 70px rgba(31, 61, 82, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(26px) saturate(1.2);
+    0 12px 34px rgba(20, 46, 64, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px) saturate(1.08);
 }
 
 main > * {
@@ -52,8 +156,35 @@ main > * {
 
 .panel-title {
   color: #f6fffb;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--text-title);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.panel-caption {
+  color: rgba(223, 247, 244, 0.62);
+  font-size: var(--text-small);
+  margin-top: 0.15rem;
+}
+
+.label-caps {
+  font-size: var(--text-label);
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(233, 250, 250, 0.56);
+}
+
+.figure {
+  font-size: var(--text-figure);
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.accent-text {
+  color: var(--accent-ink);
 }
 
 .subtle {
@@ -78,8 +209,10 @@ main > * {
 .weather-shell {
   position: relative;
   isolation: isolate;
-  min-height: 100svh;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: hidden;
   transition: background 700ms ease;
 }
 
@@ -89,91 +222,172 @@ main > * {
   pointer-events: none;
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   transition: opacity 700ms ease;
 }
 
-.atmosphere-sunny {
-  background:
-    radial-gradient(circle at 74% 10%, rgba(255, 244, 181, 0.72), transparent 15rem),
-    radial-gradient(circle at 20% 6%, rgba(255, 255, 255, 0.55), transparent 19rem),
-    linear-gradient(160deg, #88d0f1 0%, #a2e0da 48%, #f4d693 100%);
+/* Particle layer sits above the gradient wash but below all app chrome. */
+.atmosphere-canvas {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: block;
 }
 
-.atmosphere-sunny::before {
+/*
+ * Twelve scenes, matching `WeatherScene` in SunnyDay iOS. Each is a base
+ * gradient plus one or two soft glows; motion beyond the slow sky drift is
+ * handled by the canvas layer so it can be disabled wholesale for people who
+ * ask for reduced motion.
+ */
+
+.scene-clear-day {
   background:
-    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.32), transparent 32rem),
+    radial-gradient(circle at 76% 12%, rgba(255, 246, 189, 0.82), transparent 17rem),
+    radial-gradient(circle at 18% 4%, rgba(255, 255, 255, 0.5), transparent 20rem),
+    linear-gradient(165deg, #5fb8ee 0%, #8ed6e6 44%, #f3dfa4 100%);
+}
+
+.scene-clear-day::before {
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.34), transparent 32rem),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent 42%);
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-.atmosphere-cloud {
+.scene-heat {
   background:
-    radial-gradient(ellipse at 20% 18%, rgba(255, 255, 255, 0.55), transparent 18rem),
-    radial-gradient(ellipse at 84% 22%, rgba(244, 250, 255, 0.62), transparent 24rem),
-    linear-gradient(160deg, #99bfd6 0%, #bdd4de 52%, #d7d4bb 100%);
+    radial-gradient(circle at 74% 10%, rgba(255, 232, 150, 0.92), transparent 19rem),
+    radial-gradient(circle at 22% 88%, rgba(255, 172, 108, 0.42), transparent 24rem),
+    linear-gradient(165deg, #6cb6d8 0%, #e6c88b 52%, #ef9f6d 100%);
 }
 
-.atmosphere-cloud::before,
-.atmosphere-cloud-night::before {
+.scene-heat::before {
   background:
-    radial-gradient(ellipse at 18% 14%, rgba(255, 255, 255, 0.34), transparent 12rem),
-    radial-gradient(ellipse at 72% 20%, rgba(255, 255, 255, 0.28), transparent 15rem);
+    radial-gradient(ellipse at 50% 0%, rgba(255, 227, 156, 0.4), transparent 24rem),
+    linear-gradient(to bottom, rgba(255, 210, 150, 0.18), transparent 52%);
+  opacity: 0.82;
+  animation: heat-shimmer 9s ease-in-out infinite alternate;
+}
+
+.scene-partly-cloudy-day {
+  background:
+    radial-gradient(circle at 78% 14%, rgba(255, 247, 205, 0.55), transparent 16rem),
+    radial-gradient(ellipse at 22% 16%, rgba(255, 255, 255, 0.5), transparent 20rem),
+    linear-gradient(165deg, #78bede 0%, #a9d3dd 50%, #e2dfc4 100%);
+}
+
+.scene-partly-cloudy-day::before {
+  background:
+    radial-gradient(ellipse at 20% 16%, rgba(255, 255, 255, 0.34), transparent 14rem),
+    radial-gradient(ellipse at 74% 22%, rgba(255, 255, 255, 0.26), transparent 17rem);
+  opacity: 0.6;
+  animation: slow-sky 30s ease-in-out infinite alternate;
+}
+
+.scene-cloudy {
+  background:
+    radial-gradient(ellipse at 20% 18%, rgba(255, 255, 255, 0.52), transparent 18rem),
+    radial-gradient(ellipse at 84% 22%, rgba(244, 250, 255, 0.58), transparent 24rem),
+    linear-gradient(165deg, #93b8cf 0%, #b8ccd7 52%, #d2cfb8 100%);
+}
+
+.scene-overcast {
+  background:
+    radial-gradient(ellipse at 28% 14%, rgba(240, 246, 250, 0.4), transparent 20rem),
+    linear-gradient(165deg, #7f96a6 0%, #a3b3bd 50%, #b9bcb0 100%);
+}
+
+.scene-cloudy::before,
+.scene-overcast::before {
+  background:
+    radial-gradient(ellipse at 18% 14%, rgba(255, 255, 255, 0.3), transparent 13rem),
+    radial-gradient(ellipse at 72% 20%, rgba(255, 255, 255, 0.24), transparent 16rem);
   opacity: 0.58;
   animation: slow-sky 28s ease-in-out infinite alternate;
 }
 
-.atmosphere-rain {
+.scene-fog {
   background:
-    radial-gradient(circle at 18% 12%, rgba(220, 241, 250, 0.38), transparent 18rem),
-    radial-gradient(circle at 82% 4%, rgba(255, 255, 255, 0.2), transparent 18rem),
-    linear-gradient(160deg, #6b91a8 0%, #8aabb5 48%, #b2bcae 100%);
+    radial-gradient(ellipse at 50% 40%, rgba(238, 243, 246, 0.55), transparent 26rem),
+    linear-gradient(165deg, #9fb0b6 0%, #c2ccce 48%, #ced2cd 100%);
 }
 
-.atmosphere-rain::before,
-.atmosphere-storm::before {
+.scene-fog::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.26),
+    rgba(255, 255, 255, 0.08) 40%,
+    transparent 70%
+  );
+  opacity: 0.8;
+  animation: slow-sky 36s ease-in-out infinite alternate;
+}
+
+.scene-rain {
   background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.22), transparent 46%),
-    radial-gradient(ellipse at 50% -8%, rgba(255, 255, 255, 0.3), transparent 26rem);
+    radial-gradient(circle at 18% 12%, rgba(214, 238, 250, 0.34), transparent 18rem),
+    radial-gradient(circle at 82% 4%, rgba(255, 255, 255, 0.18), transparent 18rem),
+    linear-gradient(165deg, #5d829a 0%, #7ea1ad 48%, #a5b3a8 100%);
+}
+
+.scene-showers {
+  background:
+    radial-gradient(circle at 74% 8%, rgba(226, 244, 252, 0.28), transparent 16rem),
+    radial-gradient(circle at 16% 18%, rgba(196, 226, 240, 0.34), transparent 20rem),
+    linear-gradient(165deg, #55788f 0%, #7699a7 46%, #9faea4 100%);
+}
+
+.scene-rain::before,
+.scene-showers::before,
+.scene-storm::before {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent 46%),
+    radial-gradient(ellipse at 50% -8%, rgba(255, 255, 255, 0.28), transparent 26rem);
   opacity: 0.62;
   animation: slow-sky 32s ease-in-out infinite alternate;
 }
 
-.atmosphere-storm {
+.scene-storm {
   background:
-    radial-gradient(circle at 74% 12%, rgba(243, 232, 178, 0.24), transparent 13rem),
-    radial-gradient(circle at 20% 6%, rgba(255, 255, 255, 0.22), transparent 18rem),
-    linear-gradient(160deg, #52677e 0%, #74899a 48%, #9fa699 100%);
+    radial-gradient(circle at 74% 12%, rgba(243, 232, 178, 0.22), transparent 13rem),
+    radial-gradient(circle at 20% 6%, rgba(255, 255, 255, 0.18), transparent 18rem),
+    linear-gradient(165deg, #3d4f63 0%, #5c7183 46%, #838d84 100%);
 }
 
-.atmosphere-storm::after {
-  background: radial-gradient(circle at 72% 12%, rgba(255, 247, 203, 0.28), transparent 12rem);
+.scene-storm::after {
+  background: radial-gradient(circle at 72% 12%, rgba(255, 247, 203, 0.24), transparent 12rem);
   opacity: 0.7;
 }
 
-.atmosphere-night {
+.scene-snow {
   background:
-    radial-gradient(circle at 72% 16%, rgba(220, 237, 255, 0.32), transparent 9rem),
-    linear-gradient(160deg, #172b4a 0%, #254d6b 50%, #467583 100%);
+    radial-gradient(ellipse at 30% 12%, rgba(255, 255, 255, 0.6), transparent 20rem),
+    linear-gradient(165deg, #8fa9bd 0%, #c3d3dd 50%, #e4e9ec 100%);
 }
 
-.atmosphere-night::before {
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.92) 0 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.62) 0 1px, transparent 1.5px);
-  background-position:
-    0 0,
-    32px 48px;
-  background-size:
-    120px 120px,
-    170px 170px;
-  opacity: 0.48;
+.scene-snow::before {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.28), transparent 52%);
+  opacity: 0.7;
 }
 
-.atmosphere-cloud-night {
+.scene-clear-night {
   background:
-    radial-gradient(circle at 70% 16%, rgba(220, 237, 255, 0.22), transparent 10rem),
-    linear-gradient(160deg, #253a56 0%, #49697b 52%, #77838a 100%);
+    radial-gradient(circle at 72% 16%, rgba(220, 237, 255, 0.28), transparent 9rem),
+    linear-gradient(165deg, #101d35 0%, #1d3f5c 50%, #356073 100%);
+}
+
+.scene-partly-cloudy-night {
+  background:
+    radial-gradient(circle at 70% 16%, rgba(220, 237, 255, 0.2), transparent 10rem),
+    linear-gradient(165deg, #1d2f47 0%, #3d5a6d 52%, #67757e 100%);
+}
+
+.scene-clear-night::before,
+.scene-partly-cloudy-night::before {
+  background: linear-gradient(to bottom, rgba(140, 178, 214, 0.14), transparent 48%);
+  opacity: 0.7;
 }
 
 @keyframes slow-sky {
@@ -183,4 +397,301 @@ main > * {
   to {
     transform: translate3d(0.6rem, 0.35rem, 0) scale(1.02);
   }
+}
+
+@keyframes heat-shimmer {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: translate3d(0, 0.5rem, 0) scale(1.03);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-shell::before,
+  .weather-shell::after {
+    animation: none !important;
+  }
+}
+
+/*
+ * Per-scene accent.
+ *
+ * The interface used to be cyan-and-amber regardless of the weather, so a
+ * storm and a clear morning looked identical apart from the background wash.
+ * Each scene now sets its own accent, which the panels pick up through
+ * `var(--accent-*)` - so the chrome shifts with the sky instead of sitting on
+ * top of it.
+ */
+.scene-clear-day {
+  --accent-ink: #fff0bd;
+  --accent-line: rgba(255, 224, 138, 0.34);
+  --accent-wash: rgba(255, 224, 138, 0.16);
+  --accent-bar: linear-gradient(90deg, #ffd97a, #b6ecff);
+}
+
+.scene-heat {
+  --accent-ink: #ffe0b0;
+  --accent-line: rgba(255, 174, 108, 0.36);
+  --accent-wash: rgba(255, 174, 108, 0.18);
+  --accent-bar: linear-gradient(90deg, #ffb066, #ffe6a8);
+}
+
+.scene-partly-cloudy-day {
+  --accent-ink: #e9f6ff;
+  --accent-line: rgba(213, 238, 255, 0.32);
+  --accent-wash: rgba(213, 238, 255, 0.15);
+  --accent-bar: linear-gradient(90deg, #ffd97a, #cfe9ff);
+}
+
+.scene-cloudy,
+.scene-overcast {
+  --accent-ink: #eaf3f8;
+  --accent-line: rgba(226, 240, 248, 0.3);
+  --accent-wash: rgba(226, 240, 248, 0.14);
+  --accent-bar: linear-gradient(90deg, #c2d6e2, #eaf3f8);
+}
+
+.scene-fog {
+  --accent-ink: #edf3f5;
+  --accent-line: rgba(237, 243, 245, 0.32);
+  --accent-wash: rgba(237, 243, 245, 0.16);
+  --accent-bar: linear-gradient(90deg, #cfdadd, #edf3f5);
+}
+
+.scene-rain,
+.scene-showers {
+  --accent-ink: #cfeeff;
+  --accent-line: rgba(150, 214, 245, 0.36);
+  --accent-wash: rgba(150, 214, 245, 0.16);
+  --accent-bar: linear-gradient(90deg, #6fc4ea, #cfeeff);
+}
+
+.scene-storm {
+  --accent-ink: #ffe9a8;
+  --accent-line: rgba(255, 226, 140, 0.34);
+  --accent-wash: rgba(255, 226, 140, 0.14);
+  --accent-bar: linear-gradient(90deg, #f2c76b, #ffe9a8);
+}
+
+.scene-snow {
+  --accent-ink: #eef7ff;
+  --accent-line: rgba(226, 240, 255, 0.36);
+  --accent-wash: rgba(226, 240, 255, 0.18);
+  --accent-bar: linear-gradient(90deg, #a9cfe8, #eef7ff);
+}
+
+.scene-clear-night,
+.scene-partly-cloudy-night {
+  --accent-ink: #bcd9f5;
+  --accent-line: rgba(150, 190, 235, 0.34);
+  --accent-wash: rgba(150, 190, 235, 0.16);
+  --accent-bar: linear-gradient(90deg, #6f9ecb, #bcd9f5);
+}
+
+/* Score / progress bars pick up the scene accent. */
+.accent-bar {
+  background: var(--accent-bar);
+}
+
+/*
+ * Horizontal scrollers (hourly strip) get snap points and a hidden
+ * scrollbar on touch, so they read as a deliberate rail rather than a
+ * clipped grid.
+ */
+.rail {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+.rail > * {
+  scroll-snap-align: start;
+}
+
+.rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/*
+ * Per-metric colour.
+ *
+ * The interface was white-on-glass with faint tints, so every tile looked the
+ * same and nothing was identifiable at a glance. Each metric now owns a hue
+ * and carries it in its chart, its figure, and its glow - so rain is blue,
+ * heat is orange, and you can find the one you want without reading labels.
+ */
+:root {
+  --rain-1: #38bdf8;
+  --rain-2: #7dd3fc;
+  --cloud-1: #94a3b8;
+  --cloud-2: #cbd5e1;
+  --sun-1: #fbbf24;
+  --sun-2: #fde68a;
+  --heat-1: #fb923c;
+  --heat-2: #fdba74;
+  --uv-1: #f59e0b;
+  --uv-2: #fcd34d;
+  --air-1: #4ade80;
+  --air-2: #a7f3d0;
+  --wind-1: #2dd4bf;
+  --wind-2: #99f6e4;
+  --good-1: #4ade80;
+  --warn-1: #fbbf24;
+  --bad-1: #fb7185;
+}
+
+/*
+ * Bento tiles.
+ *
+ * Interactive depth: a tile lifts and brightens its rim on hover, which is
+ * most of what separates a "premium" surface from a static rectangle. The
+ * transform is GPU-friendly and the whole thing is disabled under
+ * prefers-reduced-motion.
+ */
+/*
+ * No backdrop-filter here, deliberately.
+ *
+ * `backdrop-filter` re-samples and re-blurs whatever is behind the element
+ * every frame that the backdrop changes - and there is an animating particle
+ * canvas behind every one of these. Nine live-blurred regions over moving
+ * content is the single most expensive thing this UI can ask a GPU to do, and
+ * it was the main source of the jank.
+ *
+ * A slightly more opaque flat background reads almost identically and costs
+ * nothing. `contain: paint` keeps each tile's repaints inside its own box.
+ */
+.bento {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  contain: paint;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)),
+    rgba(11, 30, 42, 0.52);
+  box-shadow:
+    0 14px 38px rgba(12, 34, 48, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  /* Transform and opacity only: both run on the compositor, so hover never
+     triggers layout or paint on the main thread. */
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+/* Metric hue bleeding in from the top-left corner. */
+.bento::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 0% 0%, var(--tile-glow, transparent), transparent 62%);
+  opacity: 0.85;
+  transition: opacity 320ms ease;
+}
+
+.bento > * {
+  position: relative;
+}
+
+@media (hover: hover) {
+  .bento:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 20px 46px rgba(12, 34, 48, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .bento:hover::before {
+    opacity: 1;
+  }
+}
+
+/* The score tile gets a stronger treatment - it is the one thing on screen
+   that should read first. */
+.bento-feature {
+  border-color: rgba(255, 255, 255, 0.26);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)),
+    rgba(11, 30, 42, 0.55);
+  box-shadow:
+    0 26px 68px rgba(12, 34, 48, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tile-figure {
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.tile-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(233, 250, 250, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento {
+    transition: none;
+  }
+
+  .bento:hover {
+    transform: none;
+  }
+}
+
+/*
+ * The expanded detail surface.
+ *
+ * Deliberately more opaque than a bento tile: it sits over a blurred backdrop
+ * and needs to read as a foreground object, and stacking a heavy live blur on
+ * top of another live blur is the single most expensive thing this UI could
+ * do on a phone.
+ */
+.sheet {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(120% 80% at 0% 0%, var(--tile-glow, transparent), transparent 60%),
+    linear-gradient(160deg, rgba(28, 52, 68, 0.97), rgba(12, 28, 40, 0.98));
+  box-shadow:
+    0 40px 110px rgba(4, 16, 26, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.bento-interactive {
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }

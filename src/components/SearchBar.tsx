@@ -95,7 +95,7 @@ export function SearchBar({ onSelect }: SearchBarProps) {
       {isOpen && results.length > 0 ? (
         <div
           id={listId}
-          className="glass absolute left-0 right-0 top-[calc(100%+0.55rem)] z-30 overflow-hidden rounded-xl p-1 text-left"
+          className="surface-panel absolute left-0 right-0 top-[calc(100%+0.55rem)] z-30 overflow-hidden rounded-xl p-1 text-left"
           role="listbox"
         >
           {results.map((location) => (

@@ -12,13 +12,13 @@ export function ComfortPanel({ summary }: ComfortPanelProps) {
   const visibilityMiles = current.visibilityMeters === null ? null : current.visibilityMeters / 1609.344;
 
   return (
-    <section className="glass rounded-2xl p-4 sm:p-5">
+    <section className="surface-panel @container p-4 sm:p-5">
       <div>
         <h2 className="panel-title">Comfort</h2>
-        <p className="subtle mt-1 text-sm">{comfortNotes(current).join(' • ')}</p>
+        <p className="panel-caption">{comfortNotes(current).join(' • ')}</p>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid gap-2 @2xs:grid-cols-2 @lg:grid-cols-3">
         {[
           { label: 'Feels like', value: temp(current.apparentTemperatureF), icon: ThermometerSun },
           { label: 'Humidity', value: percent(current.humidity), icon: Gauge },
@@ -26,10 +26,10 @@ export function ComfortPanel({ summary }: ComfortPanelProps) {
           { label: 'UV Index', value: current.uvIndex === null ? '—' : String(current.uvIndex), icon: SunMedium },
           { label: 'Visibility', value: visibilityMiles === null ? '—' : `${Math.round(visibilityMiles)} mi`, icon: Eye },
         ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex items-center gap-3 rounded-xl border border-white/14 bg-white/12 p-3">
-            <Icon aria-hidden="true" className="size-5 shrink-0 text-cyan-100" />
+          <div key={label} className="flex items-center gap-3 surface-tile p-3">
+            <Icon aria-hidden="true" className="accent-text size-5 shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/44">{label}</p>
+              <p className="label-caps">{label}</p>
               <p className="mt-1 truncate text-lg font-black text-white">{value}</p>
             </div>
           </div>

@@ -8,22 +8,46 @@ const TEN_MINUTES = 10 * 60 * 1000;
 export type ModelForecast = {
   id: string;
   label: string;
+  /** Operating centre, so the model list reads as real institutions. */
+  agency: string;
+  /**
+   * Relative confidence used to weight the consensus. ECMWF verifies best in
+   * the medium range, GFS/ICON/UKMO next, then the remaining globals. These
+   * are coarse on purpose: they order the models, they do not pretend to be
+   * verification scores.
+   */
+  weight: number;
   summary: SunnyDaySummary;
 };
 
+/**
+ * Seven independent global NWP systems. All are reached through Open-Meteo,
+ * but each is a genuinely separate model run by a different meteorological
+ * agency, which is what makes the spread between them meaningful.
+ *
+ * Any model can be missing for a given point or lead time; `fetchModelForecasts`
+ * keeps whatever succeeds rather than failing the whole comparison.
+ */
 export const forecastModels = [
-  { id: 'gfs_seamless', label: 'NOAA GFS' },
-  { id: 'ecmwf_ifs025', label: 'ECMWF IFS' },
-  { id: 'icon_seamless', label: 'DWD ICON' },
+  { id: 'ecmwf_ifs025', label: 'ECMWF IFS', agency: 'European Centre', weight: 1.25 },
+  { id: 'gfs_seamless', label: 'NOAA GFS', agency: 'United States', weight: 1.1 },
+  { id: 'icon_seamless', label: 'DWD ICON', agency: 'Germany', weight: 1.1 },
+  { id: 'ukmo_seamless', label: 'UKMO', agency: 'United Kingdom', weight: 1 },
+  { id: 'meteofrance_seamless', label: 'Météo-France', agency: 'France', weight: 0.9 },
+  { id: 'gem_seamless', label: 'ECCC GEM', agency: 'Canada', weight: 0.9 },
+  { id: 'jma_seamless', label: 'JMA GSM', agency: 'Japan', weight: 0.8 },
 ] as const;
 
+export type ForecastModelDefinition = (typeof forecastModels)[number];
+
 const fetchModel = async (
-  model: (typeof forecastModels)[number],
+  model: ForecastModelDefinition,
   location: LocationResult,
-  selectedDate?: string,
+  selectedDate: string | undefined,
+  signal?: AbortSignal,
 ): Promise<ModelForecast> => {
   const dateKey = selectedDate ?? 'today';
-  const cacheKey = `sunnyday:model:v1:${model.id}:${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}:${dateKey}`;
+  const cacheKey = `sunnyday:model:v2:${model.id}:${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}:${dateKey}`;
   const cached = readCache<SunnyDaySummary>(cacheKey);
   if (cached) return { ...model, summary: cached };
 
@@ -39,15 +63,30 @@ const fetchModel = async (
     timezone: 'auto',
     forecast_days: '7',
   });
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { signal });
   if (!response.ok) throw new Error(`${model.label} forecast failed.`);
 
   const summary = normalizeOpenMeteo(await response.json(), location, selectedDate);
+
+  // A model can answer 200 with an all-null series when the selected day sits
+  // outside its run length. Treat that as unavailable rather than letting a
+  // hollow forecast dilute the consensus.
+  const usableHours = summary.scoringHourly.filter(
+    (hour) => hour.temperatureF !== null || hour.precipitationProbability !== null,
+  ).length;
+  if (usableHours < 3) throw new Error(`${model.label} returned no usable hours.`);
+
   writeCache(cacheKey, summary, TEN_MINUTES);
   return { ...model, summary };
 };
 
-export const fetchModelForecasts = async (location: LocationResult, selectedDate?: string): Promise<ModelForecast[]> => {
-  const results = await Promise.allSettled(forecastModels.map((model) => fetchModel(model, location, selectedDate)));
+export const fetchModelForecasts = async (
+  location: LocationResult,
+  selectedDate?: string,
+  signal?: AbortSignal,
+): Promise<ModelForecast[]> => {
+  const results = await Promise.allSettled(
+    forecastModels.map((model) => fetchModel(model, location, selectedDate, signal)),
+  );
   return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
 };
