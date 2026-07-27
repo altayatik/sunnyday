@@ -39,7 +39,7 @@ export const buildSummaryText = (
     )}.`;
   }
 
-  if (sunshine !== null && sunshine >= 65) {
+  if (current.isDay && sunshine !== null && sunshine >= 65) {
     return `${label}: ${current.conditionLabel.toLowerCase()} with generous sunshine and no major rain signal nearby.`;
   }
 

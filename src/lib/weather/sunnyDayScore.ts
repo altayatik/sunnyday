@@ -1,10 +1,16 @@
-import type { DailySunnyData, HourlySunnyData, ScoreLabel } from '../../types/weather';
+import type { DailySunnyData, HourlySunnyData, NwsAlert, ScoreLabel } from '../../types/weather';
 import { clamp } from './units';
 
-type ScoreResult = {
+export type ScoreResult = {
   score: number;
   label: ScoreLabel;
   reasons: string[];
+  breakdown: {
+    sky: number;
+    precipitation: number;
+    comfort: number;
+    safety: number;
+  };
 };
 
 const average = (values: Array<number | null | undefined>) => {
@@ -27,141 +33,163 @@ const labelForScore = (score: number): ScoreLabel => {
   return 'Stay Inside';
 };
 
-export const scoreSunnyDay = (hourly: HourlySunnyData[], daily: DailySunnyData[]): ScoreResult => {
+const wetCodes = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]);
+const stormCodes = new Set([95, 96, 99]);
+const snowCodes = new Set([71, 73, 75, 77, 85, 86]);
+
+const alertPriority = (alert: NwsAlert) => {
+  const event = alert.event.toLowerCase();
+  if (event.includes('tornado warning')) return 100;
+  if (event.includes('severe thunderstorm warning')) return 90;
+  if (event.includes('flash flood warning')) return 80;
+  if (event.includes('extreme heat warning')) return 70;
+  if (event.includes('heat advisory')) return 60;
+  if (event.includes('warning')) return 50;
+  return 10;
+};
+
+/**
+ * Bounded category model shared with SunnyDay iOS.
+ *
+ * The old scorer stacked every penalty against one 100-point bucket, could
+ * score tomorrow against tonight, and counted precipitation more than once.
+ * Here each category is independently clamped before weighting, so clouds,
+ * humidity, wind, and a rain chance can explain a mixed day without combining
+ * into a misleading single-digit emergency score.
+ */
+export const scoreSunnyDay = (
+  hourly: HourlySunnyData[],
+  daily: DailySunnyData[],
+  alerts: NwsAlert[] = [],
+): ScoreResult => {
   const current = hourly[0];
   const daytime = hourly.filter((hour) => hour.isDay !== false).slice(0, 12);
   const window = daytime.length >= 4 ? daytime : hourly.slice(0, 12);
   const next6 = window.slice(0, 6);
-  const today = daily[0];
+  const selectedDay = daily[0];
 
-  const rainRisk = max(window.map((hour) => hour.precipitationProbability)) ?? 0;
-  const avgRainRisk = average(window.map((hour) => hour.precipitationProbability)) ?? 0;
-  const measurableRain = window.reduce(
-    (sum, hour) => sum + (hour.precipitationInches ?? 0) + (hour.rainInches ?? 0) + (hour.showersInches ?? 0),
-    0,
-  );
-  const avgCloud = average(window.map((hour) => hour.cloudCover)) ?? 0;
+  const peakRain = max(window.map((hour) => hour.precipitationProbability)) ?? 0;
+  const precipitationAmount = window.reduce((sum, hour) => sum + (hour.precipitationInches ?? 0), 0);
+  const averageCloud = average(window.map((hour) => hour.cloudCover)) ?? current?.cloudCover ?? 0;
   const lowCloud = average(window.map((hour) => hour.lowCloudCover)) ?? 0;
-  const humidity = average(next6.map((hour) => hour.humidity)) ?? 0;
+  const humidity = average(next6.map((hour) => hour.humidity)) ?? current?.humidity ?? 50;
   const apparentTemperature = average(next6.map((hour) => hour.apparentTemperatureF ?? hour.temperatureF)) ?? 72;
   const gusts = max(next6.map((hour) => hour.windGustMph)) ?? 0;
   const uv = max(next6.map((hour) => hour.uvIndex)) ?? 0;
   const currentCode = current?.weatherCode ?? null;
-  const wetCodes = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]);
-  const snowCodes = new Set([71, 73, 75, 77, 85, 86]);
   const currentWet = currentCode !== null && wetCodes.has(currentCode);
+  const currentStorm = currentCode !== null && stormCodes.has(currentCode);
   const currentSnow = currentCode !== null && snowCodes.has(currentCode);
-  const sunshineRatio =
-    today?.sunshineDurationSeconds && today?.daylightDurationSeconds
-      ? today.sunshineDurationSeconds / today.daylightDurationSeconds
-      : null;
-
-  let score = 100;
   const reasons: string[] = [];
 
-  if (currentWet) {
-    score -= 28;
-    if ([95, 96, 99].includes(currentCode ?? -1)) score -= 10;
-    reasons.push(`Current conditions still show rain or storms, so the score stays cautious.`);
+  let precipitation = 100;
+  if (currentStorm) {
+    precipitation = 30;
+    reasons.push('Thunderstorms are active now, so outdoor confidence is low.');
   } else if (currentSnow) {
-    score -= 34;
-    reasons.push(`Current wintry precipitation is not an easy outside-day signal.`);
-  }
-
-  if (rainRisk >= 60) {
-    score -= 35;
-    reasons.push(`Rain is likely within the main outside window (${Math.round(rainRisk)}%).`);
-  } else if (rainRisk >= 40) {
-    score -= 25;
-    reasons.push(`Showers are possible later (${Math.round(rainRisk)}% peak risk).`);
-  } else if (rainRisk >= 20) {
-    score -= 12;
-    reasons.push(`Rain risk is present but manageable (${Math.round(rainRisk)}% peak).`);
-  } else if (!currentWet && !currentSnow) {
-    reasons.push(`Low precipitation risk through the next several daylight hours.`);
-  }
-
-  if (measurableRain >= 0.15) {
-    score -= 18;
-    reasons.push(`Forecast shows measurable rain accumulation.`);
-  } else if (measurableRain > 0.02) {
-    score -= 8;
-    reasons.push(`Light rain or showers may add up a little.`);
-  }
-
-  if (avgCloud >= 80) {
-    score -= 30;
-    reasons.push(`Cloud cover is heavy around ${Math.round(avgCloud)}%.`);
-  } else if (avgCloud >= 65) {
-    score -= 26;
-    reasons.push(`A gray-leaning sky with about ${Math.round(avgCloud)}% cloud cover.`);
-  } else if (avgCloud >= 50) {
-    score -= 18;
-    reasons.push(`A mixed sky with about ${Math.round(avgCloud)}% cloud cover.`);
-  } else if (avgCloud >= 35) {
-    score -= 8;
-    reasons.push(`Some clouds are present, but the sky still has room to open up.`);
+    precipitation = 45;
+    reasons.push('Wintry precipitation is active now.');
+  } else if (currentWet) {
+    precipitation = 50;
+    reasons.push('Wet weather is active now.');
+  } else if (peakRain >= 80) {
+    precipitation = 45;
+    reasons.push(`Rain risk is very high in the selected-day window (${Math.round(peakRain)}%).`);
+  } else if (peakRain >= 60) {
+    precipitation = 60;
+    reasons.push(`Rain is likely in the selected-day window (${Math.round(peakRain)}%).`);
+  } else if (peakRain >= 40) {
+    precipitation = 75;
+    reasons.push(`Showers are possible in the selected-day window (${Math.round(peakRain)}% peak).`);
+  } else if (peakRain >= 20) {
+    precipitation = 88;
+    reasons.push(`Rain risk is present but manageable (${Math.round(peakRain)}% peak).`);
   } else {
-    reasons.push(`Cloud cover stays friendly for sunshine.`);
+    reasons.push('Precipitation risk is low in the selected-day window.');
   }
 
-  if (lowCloud >= 70) {
-    score -= 6;
-    reasons.push(`Low clouds may make the sky feel grayer than the headline forecast.`);
-  }
+  if (precipitationAmount >= 0.5) precipitation -= 20;
+  else if (precipitationAmount >= 0.15) precipitation -= 12;
+  else if (precipitationAmount > 0.02) precipitation -= 5;
+  precipitation = clamp(precipitation, 0, 100);
 
-  if (sunshineRatio !== null) {
-    if (sunshineRatio >= 0.7 && avgRainRisk < 35 && !currentWet && !currentSnow) {
-      score += 4;
-      reasons.push(`Sunshine duration looks strong for the day.`);
-    } else if (sunshineRatio < 0.35) {
-      score -= 12;
-      reasons.push(`Limited sunshine duration lowers the outside-day feel.`);
-    }
-  }
+  let sky = 100;
+  if (averageCloud >= 80) sky = 50;
+  else if (averageCloud >= 65) sky = 65;
+  else if (averageCloud >= 50) sky = 78;
+  else if (averageCloud >= 35) sky = 90;
 
+  if (averageCloud >= 65) {
+    reasons.push(`Cloud cover is fairly high around ${Math.round(averageCloud)}%.`);
+  } else if (averageCloud >= 35) {
+    reasons.push(`Some clouds are present around ${Math.round(averageCloud)}%.`);
+  } else {
+    reasons.push('Cloud cover remains friendly for open-sky conditions.');
+  }
+  if (lowCloud >= 70) sky -= 5;
+
+  const sunshineRatio =
+    selectedDay?.sunshineDurationSeconds && selectedDay.daylightDurationSeconds
+      ? selectedDay.sunshineDurationSeconds / selectedDay.daylightDurationSeconds
+      : null;
+  if (sunshineRatio !== null && sunshineRatio < 0.35) sky -= 8;
+  else if (sunshineRatio !== null && sunshineRatio >= 0.7 && !currentWet) sky += 3;
+  sky = clamp(sky, 0, 100);
+
+  let comfort = 100;
   if (humidity >= 85) {
-    score -= 12;
-    reasons.push(`Humidity is very high and may feel sticky.`);
+    comfort -= 12;
+    reasons.push('Humidity is very high and may feel sticky.');
   } else if (humidity >= 70) {
-    score -= 6;
-    reasons.push(`Humidity is elevated but not a deal-breaker.`);
+    comfort -= 6;
+    reasons.push('Humidity is elevated but not a deal-breaker.');
   }
 
-  if (apparentTemperature >= 95) {
-    score -= 16;
-    reasons.push(`The heat index is uncomfortable for long outside time.`);
-  } else if (apparentTemperature >= 88 && humidity >= 65) {
-    score -= 10;
-    reasons.push(`Hot and humid air reduces comfort even if the sky improves.`);
-  } else if (apparentTemperature >= 88 || apparentTemperature <= 35) {
-    score -= 7;
-    reasons.push(`Temperature comfort is outside the easy range.`);
-  } else if (apparentTemperature >= 58 && apparentTemperature <= 82 && humidity < 70 && !currentWet) {
-    reasons.push(`Temperature comfort is in the ideal outside range.`);
+  if (apparentTemperature >= 105) comfort -= 25;
+  else if (apparentTemperature >= 95) comfort -= 15;
+  else if (apparentTemperature >= 88) comfort -= 8;
+  else if (apparentTemperature <= 35) comfort -= 10;
+
+  if (gusts >= 35) comfort -= 12;
+  else if (gusts >= 25) comfort -= 6;
+  if (uv >= 8) comfort -= 5;
+  else if (uv >= 6) comfort -= 2;
+  comfort = clamp(comfort, 0, 100);
+
+  let safety = currentStorm ? 40 : currentSnow ? 65 : currentWet ? 75 : 100;
+  const primaryAlert = [...alerts].sort((a, b) => alertPriority(b) - alertPriority(a))[0];
+  const priority = primaryAlert ? alertPriority(primaryAlert) : 0;
+  let alertAdjustedSafety = safety;
+  if (priority >= 100) alertAdjustedSafety = 0;
+  else if (priority >= 90) alertAdjustedSafety = Math.min(alertAdjustedSafety, 25);
+  else if (priority >= 80) alertAdjustedSafety = Math.min(alertAdjustedSafety, 30);
+  else if (priority >= 70) alertAdjustedSafety = Math.min(alertAdjustedSafety, 50);
+  else if (priority >= 60) alertAdjustedSafety = Math.min(alertAdjustedSafety, 70);
+  else if (priority >= 50) alertAdjustedSafety = Math.min(alertAdjustedSafety, 75);
+
+  if (primaryAlert && priority >= 50) {
+    reasons.unshift(`${primaryAlert.event} is active and is the main safety constraint.`);
   }
 
-  if (gusts >= 35) {
-    score -= 12;
-    reasons.push(`Wind gusts could be disruptive near ${Math.round(gusts)} mph.`);
-  } else if (gusts >= 25) {
-    score -= 6;
-    reasons.push(`Breezy gusts are worth noticing.`);
-  }
-
-  if (uv >= 8) {
-    score -= 5;
-    reasons.push(`Very high UV means shade and sunscreen matter.`);
-  } else if (uv >= 6) {
-    score -= 2;
-    reasons.push(`UV is high enough to plan sun protection.`);
-  }
+  let score = sky * 0.25 + precipitation * 0.35 + comfort * 0.25 + alertAdjustedSafety * 0.15;
+  if (priority >= 100) score = Math.min(score, 15);
+  else if (priority >= 80) score = Math.min(score, 35);
+  else if (currentStorm) score = Math.min(score, 45);
+  else if (currentSnow) score = Math.min(score, 60);
+  else if (currentWet) score = Math.min(score, 65);
+  else if (peakRain >= 80) score = Math.min(score, 58);
+  else if (peakRain >= 60) score = Math.min(score, 72);
 
   const rounded = Math.round(clamp(score, 0, 100));
-
   return {
     score: rounded,
     label: labelForScore(rounded),
     reasons: reasons.slice(0, 5),
+    breakdown: {
+      sky: Math.round(sky),
+      precipitation: Math.round(precipitation),
+      comfort: Math.round(comfort),
+      safety: Math.round(alertAdjustedSafety),
+    },
   };
 };

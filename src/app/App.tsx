@@ -16,6 +16,7 @@ import { reverseGeocodeFallback } from '../lib/api/geocoding';
 import { readStorage, writeStorage } from '../lib/cache';
 import type { LocationResult, SunnyDaySources, SunnyDaySummary } from '../types/weather';
 import { addDaysToDateKey, dateKeyInTimeZone } from '../lib/date';
+import { applyNwsAlerts } from '../lib/weather/normalizeOpenMeteo';
 
 const LAST_LOCATION_KEY = 'sunnyday:last-location';
 
@@ -123,11 +124,11 @@ function App() {
             setSources((current) => ({ ...current, nws: 'ok' }));
             setSummary((current) => {
               if (!current) return current;
+              const rescored = applyNwsAlerts(current, nwsAlerts);
               return {
-                ...current,
-                nwsAlerts,
+                ...rescored,
                 sources: {
-                  ...current.sources,
+                  ...rescored.sources,
                   nws: 'ok',
                 },
               };

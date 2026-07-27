@@ -78,6 +78,7 @@ export type SunnyDaySummary = {
   selectedDate: string;
   current: HourlySunnyData;
   hourly: HourlySunnyData[];
+  scoringHourly: HourlySunnyData[];
   daily: DailySunnyData[];
   sunnyDayScore: number;
   scoreLabel: ScoreLabel;
