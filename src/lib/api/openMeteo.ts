@@ -4,7 +4,7 @@ import { normalizeOpenMeteo } from '../weather/normalizeOpenMeteo';
 
 const TEN_MINUTES = 10 * 60 * 1000;
 
-const hourlyFields = [
+export const hourlyFields = [
   'temperature_2m',
   'apparent_temperature',
   'relative_humidity_2m',
@@ -24,7 +24,7 @@ const hourlyFields = [
   'visibility',
 ];
 
-const dailyFields = [
+export const dailyFields = [
   'weather_code',
   'temperature_2m_max',
   'temperature_2m_min',
@@ -41,7 +41,7 @@ export const fetchSunnyForecast = async (location: LocationResult, selectedDate?
   const roundedLat = location.latitude.toFixed(3);
   const roundedLon = location.longitude.toFixed(3);
   const dateKey = selectedDate ?? 'today';
-  const cacheKey = `sunnyday:forecast:v9:${roundedLat},${roundedLon}:${dateKey}`;
+  const cacheKey = `sunnyday:forecast:v10:${roundedLat},${roundedLon}:${dateKey}`;
   const cached = readCache<SunnyDaySummary>(cacheKey);
   if (cached) return cached;
 

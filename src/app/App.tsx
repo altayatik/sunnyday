@@ -12,11 +12,13 @@ import { DailyOutlook } from '../components/DailyOutlook';
 import { fetchSunnyForecast } from '../lib/api/openMeteo';
 import { fetchRainViewer } from '../lib/api/rainViewer';
 import { fetchNwsAlerts } from '../lib/api/nws';
+import { fetchModelForecasts } from '../lib/api/modelForecasts';
 import { reverseGeocodeFallback } from '../lib/api/geocoding';
 import { readStorage, writeStorage } from '../lib/cache';
 import type { LocationResult, SunnyDaySources, SunnyDaySummary } from '../types/weather';
 import { addDaysToDateKey, dateKeyInTimeZone } from '../lib/date';
 import { applyNwsAlerts } from '../lib/weather/normalizeOpenMeteo';
+import { applyModelConsensus } from '../lib/weather/forecastConsensus';
 
 const LAST_LOCATION_KEY = 'sunnyday:last-location';
 
@@ -31,6 +33,7 @@ const defaultLocation: LocationResult = {
 
 const loadingSources: SunnyDaySources = {
   openMeteo: 'loading',
+  models: 'loading',
   rainViewer: 'loading',
   nws: 'loading',
 };
@@ -88,6 +91,36 @@ function App() {
         setSummary(forecast);
         setSources(forecast.sources);
         writeStorage(LAST_LOCATION_KEY, forecast.location);
+
+        fetchModelForecasts(forecast.location, date)
+          .then((modelForecasts) => {
+            const modelStatus = modelForecasts.length >= 2 ? 'ok' : 'unavailable';
+            setSources((current) => ({ ...current, models: modelStatus }));
+            setSummary((current) => {
+              if (!current) return current;
+              const consensus = applyModelConsensus(current, modelForecasts);
+              return {
+                ...consensus,
+                sources: {
+                  ...consensus.sources,
+                  models: modelStatus,
+                },
+              };
+            });
+          })
+          .catch(() => {
+            setSources((current) => ({ ...current, models: 'error' }));
+            setSummary((current) => {
+              if (!current) return current;
+              return {
+                ...current,
+                sources: {
+                  ...current.sources,
+                  models: 'error',
+                },
+              };
+            });
+          });
 
         fetchRainViewer()
           .then((rainViewer) => {
@@ -149,7 +182,7 @@ function App() {
           });
       } catch (caught) {
         setSummary(null);
-        setSources({ openMeteo: 'error', rainViewer: 'unavailable', nws: 'unavailable' });
+        setSources({ openMeteo: 'error', models: 'unavailable', rainViewer: 'unavailable', nws: 'unavailable' });
         setError(caught instanceof Error ? caught.message : 'Forecast unavailable.');
       } finally {
         setIsLoading(false);
@@ -222,7 +255,7 @@ function App() {
             <div className="text-center">
               <Loader2 aria-hidden="true" className="mx-auto size-10 animate-spin text-cyan-100" />
               <h1 className="mt-4 text-2xl font-black text-white">Reading the sky</h1>
-              <p className="mt-2 text-sm text-white/58">Pulling live Open-Meteo forecast data.</p>
+              <p className="mt-2 text-sm text-white/58">Comparing NOAA, ECMWF, and DWD forecast models.</p>
             </div>
           </section>
         ) : null}
@@ -295,7 +328,7 @@ function App() {
         <a className="text-cyan-100 underline-offset-4 hover:underline" href="https://open-meteo.com/" rel="noreferrer">
           Open-Meteo
         </a>
-        . Radar data from{' '}
+        , combining NOAA GFS, ECMWF IFS, and DWD ICON model guidance. Radar data from{' '}
         <a className="text-cyan-100 underline-offset-4 hover:underline" href="https://www.rainviewer.com/" rel="noreferrer">
           RainViewer
         </a>{' '}

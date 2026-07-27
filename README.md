@@ -5,7 +5,8 @@ SunnyDay is a polished static weather dashboard for deciding whether it is actua
 ## Features
 
 - React, TypeScript, Vite, Tailwind CSS, Framer Motion, Leaflet, and lucide icons.
-- Open-Meteo-powered live forecasts with normalized app-specific weather types.
+- Multi-model live forecasts combining NOAA GFS, ECMWF IFS, and DWD ICON guidance through Open-Meteo.
+- A consensus SunnyDay score plus a separate accuracy-confidence score based on model agreement.
 - U.S.-preferred city search through Open-Meteo Geocoding.
 - Browser geolocation support with graceful fallback.
 - Date selection for the current forecast range, defaulting to the current day.

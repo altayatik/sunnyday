@@ -1,4 +1,4 @@
-import { Circle, CloudSun, RadioTower, Satellite } from 'lucide-react';
+import { Circle, CloudSun, RadioTower, Satellite, Waypoints } from 'lucide-react';
 import type { SunnyDaySources } from '../types/weather';
 
 type SourceStatusProps = {
@@ -22,6 +22,7 @@ const statusClass = {
 export function SourceStatus({ sources }: SourceStatusProps) {
   const items = [
     { label: 'Open-Meteo', value: sources.openMeteo, icon: CloudSun },
+    { label: '3 Models', value: sources.models, icon: Waypoints },
     { label: 'RainViewer', value: sources.rainViewer, icon: Satellite },
     { label: 'NWS', value: sources.nws, icon: RadioTower },
   ];

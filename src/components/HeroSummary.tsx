@@ -1,4 +1,4 @@
-import { Cloud, Droplets, SunMedium, ThermometerSun, Umbrella, Wind } from 'lucide-react';
+import { BadgeCheck, Cloud, Droplets, SunMedium, ThermometerSun, Umbrella, Wind } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { SunnyDaySummary } from '../types/weather';
 import { inches, mph, percent, temp } from '../lib/weather/units';
@@ -44,17 +44,44 @@ export function HeroSummary({ summary }: HeroSummaryProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/22 bg-white/16 p-4 text-left sm:min-w-48">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-white/62">SunnyDay Score</p>
-          <div className="mt-2 flex items-end gap-2">
-            <span className="text-5xl font-black leading-none text-white">{summary.sunnyDayScore}</span>
-            <span className="pb-1.5 text-lg font-bold text-white/58">/100</span>
+        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[24rem]">
+          <div className="rounded-2xl border border-white/22 bg-white/16 p-4 text-left">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/62">SunnyDay Score</p>
+            <div className="mt-2 flex items-end gap-2">
+              <span className="text-5xl font-black leading-none text-white">{summary.sunnyDayScore}</span>
+              <span className="pb-1.5 text-lg font-bold text-white/58">/100</span>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-amber-200"
+                style={{ width: `${summary.sunnyDayScore}%` }}
+              />
+            </div>
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-amber-200"
-              style={{ width: `${summary.sunnyDayScore}%` }}
-            />
+
+          <div className="rounded-2xl border border-white/22 bg-white/12 p-4 text-left">
+            <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.18em] text-white/62">
+              <BadgeCheck aria-hidden="true" className="size-4 text-cyan-100" />
+              Accuracy
+            </p>
+            <div className="mt-2 flex items-end gap-2">
+              <span className="text-5xl font-black leading-none text-white">{summary.accuracy?.score ?? '—'}</span>
+              <span className="pb-1.5 text-lg font-bold text-white/58">{summary.accuracy ? '/100' : ''}</span>
+            </div>
+            <p className="mt-3 text-xs font-bold text-white/68">
+              {summary.accuracy
+                ? `${summary.accuracy.label} agreement • ${summary.accuracy.sourceCount} models`
+                : 'Comparing forecast models'}
+            </p>
+            {summary.accuracy ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {summary.accuracy.sources.map((source) => (
+                  <span key={source.id} className="rounded-full bg-white/12 px-2 py-1 text-[0.65rem] font-bold text-white/64">
+                    {source.label} {source.score}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

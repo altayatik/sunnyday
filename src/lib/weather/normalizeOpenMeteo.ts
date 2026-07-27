@@ -1,6 +1,6 @@
 import type { DailySunnyData, HourlySunnyData, LocationResult, NwsAlert, SunnyDaySummary } from '../../types/weather';
 import { conditionFromWeather } from './weatherCodes';
-import { scoreSunnyDay } from './sunnyDayScore';
+import { applyAlertScoreCap, labelForScore, scoreSunnyDay } from './sunnyDayScore';
 import { round } from './units';
 import { buildAiInsight, buildSummaryText } from './summaries';
 import { dateKeyInTimeZone } from '../date';
@@ -134,6 +134,7 @@ export const normalizeOpenMeteo = (
     reasons: score.reasons,
     sources: {
       openMeteo: 'ok',
+      models: 'loading',
       rainViewer: 'loading',
       nws: 'loading',
     },
@@ -147,22 +148,28 @@ export const applyNwsAlerts = (summary: SunnyDaySummary, nwsAlerts: NwsAlert[]):
     ? [selectedDaily, ...summary.daily.filter((day) => day.date !== selectedDaily.date)]
     : summary.daily;
   const score = scoreSunnyDay(summary.scoringHourly, scoringDaily, nwsAlerts);
+  const primaryBaseScore = scoreSunnyDay(summary.scoringHourly, scoringDaily).score;
+  const consensusBaseScore = summary.consensusBaseScore ?? primaryBaseScore;
+  const alertAdjustment = Math.max(0, primaryBaseScore - score.score);
+  const finalScore = Math.round(applyAlertScoreCap(Math.max(0, consensusBaseScore - alertAdjustment), nwsAlerts));
+  const finalLabel = labelForScore(finalScore);
+  const accuracyPhrase = summary.accuracy ? ` ${summary.accuracy.summary}` : '';
 
   return {
     ...summary,
     nwsAlerts,
-    sunnyDayScore: score.score,
-    scoreLabel: score.label,
-    summaryText: buildSummaryText(score.label, summary.current, summary.scoringHourly, scoringDaily, summary.location.timezone),
-    aiInsight: buildAiInsight(
-      score.label,
-      score.score,
+    sunnyDayScore: finalScore,
+    scoreLabel: finalLabel,
+    summaryText: buildSummaryText(finalLabel, summary.current, summary.scoringHourly, scoringDaily, summary.location.timezone),
+    aiInsight: `${buildAiInsight(
+      finalLabel,
+      finalScore,
       summary.current,
       summary.scoringHourly,
       scoringDaily,
       score.reasons,
       summary.location.timezone,
-    ),
+    )}${accuracyPhrase}`,
     reasons: score.reasons,
   };
 };

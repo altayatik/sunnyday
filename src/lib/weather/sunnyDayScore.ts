@@ -25,7 +25,7 @@ const max = (values: Array<number | null | undefined>) => {
   return Math.max(...present);
 };
 
-const labelForScore = (score: number): ScoreLabel => {
+export const labelForScore = (score: number): ScoreLabel => {
   if (score >= 90) return 'Great SunnyDay';
   if (score >= 75) return 'Pretty Good';
   if (score >= 55) return 'Mixed';
@@ -37,7 +37,7 @@ const wetCodes = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95
 const stormCodes = new Set([95, 96, 99]);
 const snowCodes = new Set([71, 73, 75, 77, 85, 86]);
 
-const alertPriority = (alert: NwsAlert) => {
+export const alertPriority = (alert: NwsAlert) => {
   const event = alert.event.toLowerCase();
   if (event.includes('tornado warning')) return 100;
   if (event.includes('severe thunderstorm warning')) return 90;
@@ -46,6 +46,15 @@ const alertPriority = (alert: NwsAlert) => {
   if (event.includes('heat advisory')) return 60;
   if (event.includes('warning')) return 50;
   return 10;
+};
+
+export const applyAlertScoreCap = (score: number, alerts: NwsAlert[]) => {
+  const priority = alerts.reduce((highest, alert) => Math.max(highest, alertPriority(alert)), 0);
+  if (priority >= 100) return Math.min(score, 8);
+  if (priority >= 90) return Math.min(score, 20);
+  if (priority >= 80) return Math.min(score, 25);
+  if (priority >= 70) return Math.min(score, 45);
+  return score;
 };
 
 /**

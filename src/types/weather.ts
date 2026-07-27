@@ -51,8 +51,27 @@ export type ScoreLabel = 'Great SunnyDay' | 'Pretty Good' | 'Mixed' | 'Risky' | 
 
 export type SunnyDaySources = {
   openMeteo: SourceState;
+  models: SourceState;
   rainViewer: SourceState;
   nws: SourceState;
+};
+
+export type ForecastSourceScore = {
+  id: string;
+  label: string;
+  score: number;
+};
+
+export type ForecastAccuracy = {
+  score: number;
+  label: 'High' | 'Good' | 'Mixed' | 'Low';
+  summary: string;
+  sourceCount: number;
+  temperatureSpreadF: number;
+  precipitationSpread: number;
+  cloudSpread: number;
+  scoreSpread: number;
+  sources: ForecastSourceScore[];
 };
 
 export type RainViewerFrame = {
@@ -85,6 +104,8 @@ export type SunnyDaySummary = {
   summaryText: string;
   aiInsight: string;
   reasons: string[];
+  consensusBaseScore?: number;
+  accuracy?: ForecastAccuracy;
   sources: SunnyDaySources;
   rainViewer?: RainViewerData;
   nwsAlerts?: NwsAlert[];
