@@ -7,7 +7,7 @@ import type {
   SunnyDaySummary,
 } from '../../types/weather';
 import { conditionFromWeather } from './weatherCodes';
-import { applyAlertScoreCap, labelForScore, scoreSunnyDay } from './sunnyDayScore';
+import { applyAlertScoreCap, applyWeatherScoreCap, labelForScore, scoreSunnyDay } from './sunnyDayScore';
 import { round } from './units';
 import { buildSummaryText } from './summaries';
 import { buildInsights } from './insights';
@@ -190,14 +190,24 @@ export const rescoreSummary = (
 
   const score = scoreSunnyDay(summary.scoringHourly, scoringDaily, nwsAlerts, airQuality);
 
-  // The consensus base score comes from the model ensemble, which knows
-  // nothing about alerts or air quality. Apply those as a delta against the
-  // ensemble rather than discarding the ensemble, so the displayed score
-  // still reflects the models that produced it.
+  // The consensus base already contains each model's weather penalties.
+  // Only air quality is an additive adjustment here. Alerts and current
+  // weather are hard caps: subtracting the primary run's alert-driven drop
+  // from the consensus and then applying the cap again double-counted the
+  // same hazard and could turn a legitimate 25 into 0.
   const cleanScore = scoreSunnyDay(summary.scoringHourly, scoringDaily).score;
   const consensusBaseScore = summary.consensusBaseScore ?? cleanScore;
-  const adjustment = Math.max(0, cleanScore - score.score);
-  const computedScore = Math.round(applyAlertScoreCap(Math.max(0, consensusBaseScore - adjustment), nwsAlerts));
+  const airOnlyScore = scoreSunnyDay(summary.scoringHourly, scoringDaily, [], airQuality).score;
+  const airAdjustment = Math.max(0, cleanScore - airOnlyScore);
+  const computedScore =
+    summary.consensusBaseScore === undefined
+      ? score.score
+      : Math.round(
+          applyAlertScoreCap(
+            applyWeatherScoreCap(Math.max(0, consensusBaseScore - airAdjustment), summary.scoringHourly),
+            nwsAlerts,
+          ),
+        );
 
   // Damp meaningless movement, but only once the models have actually been
   // compared. Stabilising the single-run score would pin the display to a

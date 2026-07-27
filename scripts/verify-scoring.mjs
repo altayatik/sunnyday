@@ -379,6 +379,16 @@ ok('an alert caps the rescored score', alerted.sunnyDayScore <= 8);
 ok('the alert reaches the headline', /tornado/i.test(alerted.insights.headline));
 ok('the label follows the score', alerted.scoreLabel === 'Stay Inside');
 
+const flashFlood = rescoreSummary(
+  { ...consensus, consensusBaseScore: 60 },
+  [{ id: 'f', event: 'Flash Flood Warning' }],
+);
+ok(
+  'an alert caps consensus instead of subtracting its penalty twice',
+  flashFlood.sunnyDayScore === 25,
+  `got ${flashFlood.sunnyDayScore}`,
+);
+
 const twice = rescoreSummary(rescoreSummary(withAir));
 ok('rescoring is idempotent', twice.sunnyDayScore === withAir.sunnyDayScore);
 

@@ -65,6 +65,32 @@ export const applyAlertScoreCap = (score: number, alerts: NwsAlert[]) => {
 };
 
 /**
+ * Applies observation/forecast hazard caps without recomputing the weighted
+ * category score. Consensus uses this after combining model scores so a
+ * primary-run observation (rain or thunder now) can still conservatively cap
+ * the result without being converted into a second additive penalty.
+ */
+export const applyWeatherScoreCap = (score: number, hourly: HourlySunnyData[]) => {
+  const current = hourly[0];
+  const daytime = hourly.filter((hour) => hour.isDay !== false).slice(0, 12);
+  const window = daytime.length >= 4 ? daytime : hourly.slice(0, 12);
+  const peakRain = max(window.map((hour) => hour.precipitationProbability)) ?? 0;
+  const currentCode = current?.weatherCode ?? null;
+  const currentWet = currentCode !== null && wetCodes.has(currentCode);
+  const currentStorm = currentCode !== null && stormCodes.has(currentCode);
+  const currentSnow = currentCode !== null && snowCodes.has(currentCode);
+  const currentHeavyPrecipitation = currentWet && (current?.precipitationInches ?? 0) >= 0.1;
+
+  if (currentStorm) return Math.min(score, 25);
+  if (currentHeavyPrecipitation) return Math.min(score, 40);
+  if (currentSnow) return Math.min(score, 60);
+  if (currentWet) return Math.min(score, 55);
+  if (peakRain >= 80) return Math.min(score, 58);
+  if (peakRain >= 60) return Math.min(score, 72);
+  return score;
+};
+
+/**
  * Category weights. Precipitation dominates because rain is the single
  * factor most likely to cancel an outdoor plan; air quality is deliberately
  * the smallest term, since it modifies a good day rather than defining it -
@@ -488,16 +514,7 @@ export const scoreSunnyDay = (
     alertAdjustedSafety * weights.safety +
     air * weights.air;
 
-  if (priority >= 100) score = Math.min(score, 8);
-  else if (priority >= 90) score = Math.min(score, 20);
-  else if (priority >= 80) score = Math.min(score, 25);
-  else if (priority >= 70) score = Math.min(score, 45);
-  else if (currentStorm) score = Math.min(score, 25);
-  else if (currentHeavyPrecipitation) score = Math.min(score, 40);
-  else if (currentSnow) score = Math.min(score, 60);
-  else if (currentWet) score = Math.min(score, 55);
-  else if (peakRain >= 80) score = Math.min(score, 58);
-  else if (peakRain >= 60) score = Math.min(score, 72);
+  score = applyAlertScoreCap(applyWeatherScoreCap(score, hourly), alerts);
 
   // Air quality can cap an otherwise pristine day. Nothing is a "Great
   // SunnyDay" when the air is unhealthy to breathe.
