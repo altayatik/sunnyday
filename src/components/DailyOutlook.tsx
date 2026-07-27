@@ -203,7 +203,7 @@ export function DailyOutlook({ summary }: DailyOutlookProps) {
       variants={bentoContainer}
       initial="hidden"
       animate="show"
-      className="grid h-full min-h-0 auto-rows-fr grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-6"
+      className="outlook-bento grid h-full min-h-0 auto-rows-fr grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-6"
       aria-label="Seven day outlook"
     >
       <Tile
@@ -262,7 +262,7 @@ export function DailyOutlook({ summary }: DailyOutlookProps) {
       </Tile>
 
       <Tile label="Day by day" glow="rgba(148, 163, 184, 0.18)" className="col-span-2 md:col-span-6">
-        <div className="grid min-h-0 flex-1 grid-cols-7">
+        <div className="outlook-day-grid grid min-h-0 flex-1 grid-cols-7">
           {days.map((day, index) => {
             const selected = day.date === summary.selectedDate;
             return (
@@ -284,7 +284,7 @@ export function DailyOutlook({ summary }: DailyOutlookProps) {
                   {temp(day.temperatureMaxF)}
                   <span className="font-bold text-white/34"> / {temp(day.temperatureMinF)}</span>
                 </p>
-                <p className="mt-0.5 hidden items-center gap-1 text-[0.6rem] font-bold text-[var(--rain-2)] sm:flex">
+                <p className="outlook-day-rain mt-0.5 hidden items-center gap-1 text-[0.6rem] font-bold text-[var(--rain-2)] sm:flex">
                   <Droplets aria-hidden="true" className="size-2.5" />
                   {percent(day.precipitationProbabilityMax)}
                 </p>

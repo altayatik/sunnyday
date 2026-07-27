@@ -80,7 +80,7 @@ export function SearchBar({ onSelect }: SearchBarProps) {
         ) : query ? (
           <button
             type="button"
-            className="focus-ring rounded-md p-1 text-white/55 transition hover:text-white"
+            className="search-clear focus-ring rounded-md p-1 text-white/55 transition hover:text-white"
             onClick={() => {
               setQuery('');
               setResults([]);
@@ -95,7 +95,7 @@ export function SearchBar({ onSelect }: SearchBarProps) {
       {isOpen && results.length > 0 ? (
         <div
           id={listId}
-          className="surface-panel absolute left-0 right-0 top-[calc(100%+0.55rem)] z-30 overflow-hidden rounded-xl p-1 text-left"
+          className="search-results surface-panel absolute left-0 right-0 top-[calc(100%+0.55rem)] z-30 overflow-hidden rounded-xl p-1 text-left"
           role="listbox"
         >
           {results.map((location) => (

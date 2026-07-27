@@ -27,7 +27,7 @@ export function HeroSummary({ summary }: HeroSummaryProps) {
 
   return (
     <motion.section
-      className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3"
+      className="hero-summary flex flex-wrap items-center justify-between gap-x-5 gap-y-3"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springy}
@@ -55,7 +55,7 @@ export function HeroSummary({ summary }: HeroSummaryProps) {
 
       {confidence && confidence.coveredCount >= 2 ? (
         <motion.div
-          className="flex items-center gap-2.5 rounded-full border border-white/16 bg-white/10 py-1.5 pl-3 pr-3.5"
+          className="model-confidence flex items-center gap-2.5 rounded-full border border-white/16 bg-white/10 py-1.5 pl-3 pr-3.5"
           initial={{ opacity: 0, x: 8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ ...springy, delay: 0.12 }}

@@ -695,3 +695,480 @@ main > * {
   font: inherit;
   color: inherit;
 }
+
+/*
+ * Phone layout.
+ *
+ * Desktop is intentionally a fixed, no-scroll dashboard. On a phone the same
+ * constraint left the header to consume most of the viewport and then forced
+ * every chart into the few pixels that remained. Below `md`, SunnyDay becomes
+ * a natural-height document with deliberate card sizes. Every rule in this
+ * block is mobile-only so the desktop composition is unchanged.
+ */
+@media (max-width: 767px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
+  }
+
+  body,
+  #root {
+    min-height: 100svh;
+  }
+
+  #root {
+    height: auto;
+  }
+
+  button,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+
+  .weather-shell {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .site-header {
+    gap: 0.65rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: 0.65rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .site-header-row {
+    gap: 0.75rem;
+  }
+
+  .brand-link {
+    gap: 0.65rem;
+  }
+
+  .brand-link > span:first-child {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+  }
+
+  .brand-link > span:first-child svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .brand-link > span:last-child > span:first-child {
+    font-size: 1.125rem;
+    line-height: 1.15;
+  }
+
+  .brand-link > span:last-child > span:last-child {
+    margin-top: 0.12rem;
+    max-width: calc(100vw - 4.75rem);
+    overflow: hidden;
+    font-size: 0.6875rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-header-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .site-header-controls > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .site-header-controls input {
+    font-size: 1rem;
+  }
+
+  .date-control,
+  .current-location-control {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .date-control {
+    gap: 0;
+  }
+
+  .date-control > svg {
+    display: none;
+  }
+
+  .date-control input {
+    width: 100%;
+    min-width: 0;
+    font-size: 1rem;
+  }
+
+  .source-status {
+    margin-right: calc(-1 * max(0.75rem, env(safe-area-inset-right)));
+    margin-left: calc(-1 * max(0.75rem, env(safe-area-inset-left)));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: 0.1rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .source-status::-webkit-scrollbar {
+    display: none;
+  }
+
+  .source-status > span {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.6875rem;
+  }
+
+  .weather-main {
+    min-height: 0;
+    flex: none;
+    gap: 0.7rem;
+    overflow: visible;
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .hero-summary {
+    gap: 0.55rem;
+  }
+
+  .hero-summary > div:first-child {
+    gap: 0.7rem;
+  }
+
+  .hero-summary > div:first-child > span {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .hero-summary > div:first-child > span svg {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+
+  .hero-summary h1 {
+    font-size: 1.35rem;
+  }
+
+  .model-confidence {
+    gap: 0.5rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  .app-page-nav {
+    position: sticky;
+    top: max(0.4rem, env(safe-area-inset-top));
+    z-index: 30;
+    border-color: rgba(255, 255, 255, 0.34);
+    background:
+      linear-gradient(150deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.11)),
+      rgba(18, 42, 56, 0.72);
+    box-shadow:
+      0 12px 30px rgba(9, 26, 36, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(14px) saturate(1.12);
+  }
+
+  .app-page-nav button {
+    min-height: 2.75rem;
+  }
+
+  .today-page,
+  .outlook-page {
+    min-height: 0;
+    flex: none;
+    overflow: visible;
+  }
+
+  .today-bento {
+    height: auto;
+    grid-auto-rows: auto;
+    align-content: start;
+    align-items: stretch;
+    gap: 0.625rem;
+  }
+
+  .today-bento > .bento {
+    grid-column: span 2 / span 2;
+    grid-row: auto;
+  }
+
+  .today-bento > .bento:nth-child(1) {
+    min-height: 15.25rem;
+  }
+
+  .today-bento > .bento:nth-child(2) {
+    min-height: 9.5rem;
+  }
+
+  .today-bento > .bento:nth-child(3),
+  .today-bento > .bento:nth-child(4),
+  .today-bento > .bento:nth-child(6),
+  .today-bento > .bento:nth-child(7),
+  .today-bento > .bento:nth-child(8),
+  .today-bento > .bento:nth-child(9) {
+    grid-column: span 1 / span 1;
+  }
+
+  .today-bento > .bento:nth-child(3),
+  .today-bento > .bento:nth-child(4) {
+    min-height: 9.25rem;
+  }
+
+  .today-bento > .bento:nth-child(5) {
+    min-height: 8.4rem;
+  }
+
+  .today-bento > .bento:nth-child(6),
+  .today-bento > .bento:nth-child(7) {
+    min-height: 9.25rem;
+  }
+
+  .today-bento > .bento:nth-child(8),
+  .today-bento > .bento:nth-child(9) {
+    min-height: 8rem;
+  }
+
+  .today-bento .mobile-mini-chart {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .today-bento .tile-figure {
+    font-size: clamp(1.45rem, 7.5vw, 1.75rem);
+  }
+
+  .bento-interactive {
+    touch-action: manipulation;
+  }
+
+  .outlook-bento {
+    height: auto;
+    grid-auto-rows: auto;
+    align-content: start;
+    align-items: stretch;
+    gap: 0.625rem;
+  }
+
+  .outlook-bento > .bento {
+    grid-column: span 2 / span 2;
+    grid-row: auto;
+  }
+
+  .outlook-bento > .bento:nth-child(1) {
+    min-height: 18rem;
+  }
+
+  .outlook-bento > .bento:nth-child(2),
+  .outlook-bento > .bento:nth-child(3) {
+    min-height: 11.5rem;
+  }
+
+  .outlook-bento > .bento:nth-child(4) {
+    min-height: 9.25rem;
+  }
+
+  .outlook-bento > .bento:nth-child(5) {
+    min-height: 10rem;
+  }
+
+  .outlook-day-grid {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .outlook-day-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .outlook-day-grid > * {
+    min-height: 7.5rem;
+    flex: 0 0 5.75rem;
+    scroll-snap-align: start;
+  }
+
+  .outlook-day-rain {
+    display: flex;
+  }
+
+  .site-footer {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    line-height: 1.35;
+  }
+
+  .search-results {
+    max-height: 45dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .search-clear {
+    position: relative;
+  }
+
+  .search-clear::after {
+    content: '';
+    position: absolute;
+    inset: -0.625rem;
+  }
+
+  .detail-overlay {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .detail-overlay > :first-child {
+    backdrop-filter: none;
+  }
+
+  .detail-overlay .sheet {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - max(0.5rem, env(safe-area-inset-top)));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+
+  .detail-sheet-header {
+    padding: 0.8rem 1rem 0.7rem;
+  }
+
+  .detail-sheet-header button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .detail-sheet-body {
+    padding: 1rem;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /*
+   * Radar remains a true no-scroll screen on mobile. The compact header,
+   * identity row, tab bar, map and alert rail all share the viewport.
+   */
+  .weather-shell[data-page='radar'] {
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  .weather-shell[data-page='radar'] .site-header {
+    flex: none;
+  }
+
+  .weather-shell[data-page='radar'] .weather-main {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    padding-bottom: 0.5rem;
+  }
+
+  .weather-shell[data-page='radar'] .app-page-nav {
+    position: relative;
+    top: auto;
+  }
+
+  .weather-shell[data-page='radar'] .radar-page {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .weather-shell[data-page='radar'] .radar-panel,
+  .weather-shell[data-page='radar'] .radar-layout {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .weather-shell[data-page='radar'] .radar-layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .weather-shell[data-page='radar'] .radar-map,
+  .weather-shell[data-page='radar'] .radar-empty {
+    min-height: 0;
+  }
+
+  .weather-shell[data-page='radar'] .site-footer {
+    display: none;
+  }
+
+  .radar-location {
+    bottom: 2.1rem;
+  }
+
+  .radar-panel .leaflet-control-zoom a {
+    width: 2.75rem;
+    height: 2.75rem;
+    line-height: 2.75rem;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 720px) {
+  .weather-shell[data-page='radar'] .site-header,
+  .weather-shell[data-page='radar'] .model-confidence {
+    display: none;
+  }
+
+  .weather-shell[data-page='radar'] .weather-main {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+@media (min-width: 600px) and (max-width: 767px) and (max-height: 500px) {
+  .weather-shell[data-page='radar'] .radar-layout {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .weather-shell[data-page='radar'] .radar-alerts {
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .weather-shell[data-page='radar'] .radar-alerts > div:nth-child(2) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

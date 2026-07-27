@@ -25,9 +25,9 @@ export function Header({
   isLocating,
 }: HeaderProps) {
   return (
-    <header className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <a className="focus-ring group flex items-center gap-3 rounded-lg text-left" href=".">
+    <header className="site-header mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="site-header-row flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <a className="brand-link focus-ring group flex items-center gap-3 rounded-lg text-left" href=".">
           <span className="grid size-10 place-items-center rounded-xl border border-white/35 bg-white/24 text-amber-100 shadow-lg shadow-white/10">
             <Sparkles aria-hidden="true" className="size-5" />
           </span>
@@ -37,9 +37,9 @@ export function Header({
           </span>
         </a>
 
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-[45rem]">
+        <div className="site-header-controls flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-[45rem]">
           <SearchBar onSelect={onSelectLocation} />
-          <label className="focus-within:border-white/50 flex items-center justify-center gap-2 rounded-xl border border-white/22 bg-white/16 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition">
+          <label className="date-control focus-within:border-white/50 flex items-center justify-center gap-2 rounded-xl border border-white/22 bg-white/16 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition">
             <CalendarDays aria-hidden="true" className="size-4" />
             <span className="sr-only">Forecast date</span>
             <input
@@ -49,13 +49,12 @@ export function Header({
               min={minDate}
               max={maxDate}
               onChange={(event) => onDateChange(event.target.value)}
-              onInput={(event) => onDateChange(event.currentTarget.value)}
               aria-label="Forecast date"
             />
           </label>
           <button
             type="button"
-            className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-white/22 bg-white/16 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-white/24"
+            className="current-location-control focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-white/22 bg-white/16 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-white/24"
             onClick={onUseCurrentLocation}
             disabled={isLocating}
           >

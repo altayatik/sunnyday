@@ -81,17 +81,35 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
   // Lock the page behind the sheet, preserving the scroll position.
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
+
+    const scrollY = window.scrollY;
+    const previous = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+    };
+
     document.body.style.overflow = 'hidden';
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    }
+
     return () => {
-      document.body.style.overflow = previous;
+      document.body.style.overflow = previous.overflow;
+      document.body.style.position = previous.position;
+      document.body.style.top = previous.top;
+      document.body.style.width = previous.width;
+      if (window.matchMedia('(max-width: 767px)').matches) window.scrollTo(0, scrollY);
     };
   }, [open]);
 
   return (
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-50 grid place-items-center p-3 sm:p-6">
+        <div className="detail-overlay fixed inset-0 z-50 grid place-items-center p-3 sm:p-6">
           <motion.div
             className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
             initial={{ opacity: 0 }}
@@ -115,7 +133,7 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
             className="sheet relative flex max-h-[88svh] w-full max-w-2xl flex-col focus:outline-none"
             style={accent ? ({ '--tile-glow': accent } as React.CSSProperties) : undefined}
           >
-            <header className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+            <header className="detail-sheet-header flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
               <h2 id={titleId} className="text-lg font-black tracking-[-0.01em] text-white">
                 {title}
               </h2>
@@ -132,7 +150,7 @@ export function DetailSheet({ open, onClose, title, layoutId, accent, children }
             {/* Content fades in slightly behind the morph so the surface lands
                 first and the text does not appear to stretch with it. */}
             <motion.div
-              className="min-h-0 flex-1 overflow-y-auto px-5 py-5"
+              className="detail-sheet-body min-h-0 flex-1 overflow-y-auto px-5 py-5"
               initial={reduced ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18, delay: reduced ? 0 : 0.06 }}

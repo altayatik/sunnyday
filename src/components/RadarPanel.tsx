@@ -38,9 +38,9 @@ export function RadarPanel({ summary }: RadarPanelProps) {
   const visibleAlerts = alerts.slice(0, 3);
 
   return (
-    <section className="bento h-full min-h-0 p-0" style={{ '--tile-glow': 'rgba(56, 189, 248, 0.2)' } as React.CSSProperties}>
-      <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-1">
-        <div className="relative min-h-0 overflow-hidden">
+    <section className="radar-panel bento h-full min-h-0 p-0" style={{ '--tile-glow': 'rgba(56, 189, 248, 0.2)' } as React.CSSProperties}>
+      <div className="radar-layout grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-1">
+        <div className="radar-map relative min-h-0 overflow-hidden">
           {radarUrl ? (
             <MapContainer
               key={`${summary.location.latitude},${summary.location.longitude}`}
@@ -70,7 +70,7 @@ export function RadarPanel({ summary }: RadarPanelProps) {
               <ZoomControl position="bottomright" />
             </MapContainer>
           ) : (
-            <div className="grid h-full min-h-52 place-items-center bg-slate-950/30 p-6 text-center">
+            <div className="radar-empty grid h-full min-h-52 place-items-center bg-slate-950/30 p-6 text-center">
               <div>
                 <AlertTriangle aria-hidden="true" className="mx-auto size-8 text-amber-200" />
                 <p className="mt-3 font-semibold text-white">Radar unavailable</p>
@@ -89,13 +89,13 @@ export function RadarPanel({ summary }: RadarPanelProps) {
             </p>
           </div>
 
-          <div className="pointer-events-none absolute bottom-3 left-3 z-[500] flex items-center gap-2 rounded-full border border-white/16 bg-slate-950/66 px-2.5 py-1.5 text-[0.6875rem] font-bold text-white/72 backdrop-blur-md sm:bottom-4 sm:left-4">
+          <div className="radar-location pointer-events-none absolute bottom-3 left-3 z-[500] flex items-center gap-2 rounded-full border border-white/16 bg-slate-950/66 px-2.5 py-1.5 text-[0.6875rem] font-bold text-white/72 backdrop-blur-md sm:bottom-4 sm:left-4">
             <MapPin aria-hidden="true" className="size-3.5 text-cyan-200" />
             {summary.location.name}
           </div>
         </div>
 
-        <aside className="flex min-h-0 flex-col border-t border-white/12 bg-slate-950/18 p-3 md:border-l md:border-t-0 md:p-4">
+        <aside className="radar-alerts flex min-h-0 flex-col border-t border-white/12 bg-slate-950/18 p-3 md:border-l md:border-t-0 md:p-4">
           <div className="flex shrink-0 items-center justify-between gap-3">
             <div>
               <p className="tile-label">NWS alerts</p>

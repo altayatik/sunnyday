@@ -238,8 +238,24 @@ function App() {
     );
   };
 
+  const changePage = (page: AppPage) => {
+    setActivePage(page);
+
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('.hero-summary')?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+  };
+
   return (
-    <div className={`weather-shell scene-${scene}`} data-night={scenePrefersDark(scene) ? 'true' : 'false'}>
+    <div
+      className={`weather-shell scene-${scene}`}
+      data-night={scenePrefersDark(scene) ? 'true' : 'false'}
+      data-page={activePage}
+    >
       <AtmosphereCanvas scene={scene} />
 
       <Header
@@ -253,7 +269,7 @@ function App() {
         isLocating={isLocating}
       />
 
-      <main className="mx-auto flex w-full min-h-0 max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 sm:px-5 lg:px-7 2xl:max-w-[84rem]">
+      <main className="weather-main mx-auto flex w-full min-h-0 max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 sm:px-5 lg:px-7 2xl:max-w-[84rem]">
         {error ? (
           <section className="surface-panel shrink-0 p-5" role="alert">
             <div className="flex gap-3 text-left">
@@ -300,7 +316,7 @@ function App() {
           <>
             <HeroSummary summary={summary} />
 
-            <nav className="surface-panel grid shrink-0 grid-cols-3 gap-1 p-1" aria-label="SunnyDay pages">
+            <nav className="app-page-nav surface-panel grid shrink-0 grid-cols-3 gap-1 p-1" aria-label="SunnyDay pages">
               {pages.map((page) => (
                 <button
                   key={page.id}
@@ -310,7 +326,7 @@ function App() {
                       ? 'bg-white text-slate-950 shadow-sm'
                       : 'text-white/72 hover:bg-white/16 hover:text-white'
                   }`}
-                  onClick={() => setActivePage(page.id)}
+                  onClick={() => changePage(page.id)}
                   aria-current={activePage === page.id ? 'page' : undefined}
                 >
                   {page.label}
@@ -327,19 +343,19 @@ function App() {
               beside the shorter cards.
             */}
             {activePage === 'today' ? (
-              <div className="min-h-0 flex-1">
+              <div className="today-page min-h-0 flex-1">
                 <TodayBento summary={summary} settling={isSettling} />
               </div>
             ) : null}
 
             {activePage === 'radar' ? (
-              <div className="min-h-0 flex-1">
+              <div className="radar-page min-h-0 flex-1">
                 <RadarPanel summary={summary} />
               </div>
             ) : null}
 
             {activePage === 'outlook' ? (
-              <div className="min-h-0 flex-1">
+              <div className="outlook-page min-h-0 flex-1">
                 <DailyOutlook summary={summary} />
               </div>
             ) : null}
@@ -347,7 +363,7 @@ function App() {
         ) : null}
       </main>
 
-      <footer className="mx-auto w-full max-w-6xl shrink-0 px-3 pb-2 text-[0.625rem] leading-tight text-white/40 sm:px-5 lg:px-7 2xl:max-w-[84rem]">
+      <footer className="site-footer mx-auto w-full max-w-6xl shrink-0 px-3 pb-2 text-[0.625rem] leading-tight text-white/40 sm:px-5 lg:px-7 2xl:max-w-[84rem]">
         Forecasts from Open-Meteo (ECMWF, GFS, ICON, UKMO, Météo-France, GEM, JMA) · air quality from CAMS · radar from
         RainViewer · alerts from NWS
       </footer>

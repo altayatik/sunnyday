@@ -67,7 +67,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
       variants={bentoContainer}
       initial="hidden"
       animate="show"
-      className="grid h-full auto-rows-fr grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-6"
+      className="today-bento grid h-full auto-rows-fr grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-6"
     >
       {/* Score — the one thing that reads first */}
       <Tile
@@ -199,7 +199,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
           <p className="tile-figure" style={{ color: 'var(--wind-2)' }}>
             {mph(current.windSpeedMph)}
           </p>
-          <div className="hidden min-h-0 flex-1 sm:flex sm:flex-col sm:justify-end">
+          <div className="mobile-mini-chart hidden min-h-0 flex-1 sm:flex sm:flex-col sm:justify-end">
             <BarSeries
               values={hours.map((hour) => hour.windGustMph)}
               max={45}
@@ -219,7 +219,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
           <p className="tile-figure" style={{ color: 'var(--rain-2)' }}>
             {percent(current.humidity)}
           </p>
-          <div className="hidden min-h-0 flex-1 sm:flex sm:flex-col sm:justify-end">
+          <div className="mobile-mini-chart hidden min-h-0 flex-1 sm:flex sm:flex-col sm:justify-end">
             <Sparkline
               values={hours.map((hour) => hour.humidity)}
               min={0}

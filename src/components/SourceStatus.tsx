@@ -29,7 +29,7 @@ export function SourceStatus({ sources }: SourceStatusProps) {
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-white/72" aria-label="Data source status">
+    <div className="source-status flex flex-wrap items-center gap-2 text-xs text-white/72" aria-label="Data source status">
       {items.map(({ label, value, icon: Icon }) => (
         <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-white/18 bg-white/14 px-2.5 py-1">
           <Icon aria-hidden="true" className="size-3.5" />
