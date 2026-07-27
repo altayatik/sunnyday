@@ -80,6 +80,8 @@ export const scoreSunnyDay = (
   const currentWet = currentCode !== null && wetCodes.has(currentCode);
   const currentStorm = currentCode !== null && stormCodes.has(currentCode);
   const currentSnow = currentCode !== null && snowCodes.has(currentCode);
+  const currentPrecipitation = current?.precipitationInches ?? 0;
+  const currentHeavyPrecipitation = currentWet && currentPrecipitation >= 0.1;
   const reasons: string[] = [];
 
   let precipitation = 100;
@@ -156,14 +158,14 @@ export const scoreSunnyDay = (
   else if (uv >= 6) comfort -= 2;
   comfort = clamp(comfort, 0, 100);
 
-  let safety = currentStorm ? 40 : currentSnow ? 65 : currentWet ? 75 : 100;
+  let safety = currentStorm ? 20 : currentSnow ? 60 : currentHeavyPrecipitation ? 55 : currentWet ? 70 : 100;
   const primaryAlert = [...alerts].sort((a, b) => alertPriority(b) - alertPriority(a))[0];
   const priority = primaryAlert ? alertPriority(primaryAlert) : 0;
   let alertAdjustedSafety = safety;
   if (priority >= 100) alertAdjustedSafety = 0;
-  else if (priority >= 90) alertAdjustedSafety = Math.min(alertAdjustedSafety, 25);
-  else if (priority >= 80) alertAdjustedSafety = Math.min(alertAdjustedSafety, 30);
-  else if (priority >= 70) alertAdjustedSafety = Math.min(alertAdjustedSafety, 50);
+  else if (priority >= 90) alertAdjustedSafety = Math.min(alertAdjustedSafety, 10);
+  else if (priority >= 80) alertAdjustedSafety = Math.min(alertAdjustedSafety, 20);
+  else if (priority >= 70) alertAdjustedSafety = Math.min(alertAdjustedSafety, 45);
   else if (priority >= 60) alertAdjustedSafety = Math.min(alertAdjustedSafety, 70);
   else if (priority >= 50) alertAdjustedSafety = Math.min(alertAdjustedSafety, 75);
 
@@ -172,11 +174,14 @@ export const scoreSunnyDay = (
   }
 
   let score = sky * 0.25 + precipitation * 0.35 + comfort * 0.25 + alertAdjustedSafety * 0.15;
-  if (priority >= 100) score = Math.min(score, 15);
-  else if (priority >= 80) score = Math.min(score, 35);
-  else if (currentStorm) score = Math.min(score, 45);
+  if (priority >= 100) score = Math.min(score, 8);
+  else if (priority >= 90) score = Math.min(score, 20);
+  else if (priority >= 80) score = Math.min(score, 25);
+  else if (priority >= 70) score = Math.min(score, 45);
+  else if (currentStorm) score = Math.min(score, 25);
+  else if (currentHeavyPrecipitation) score = Math.min(score, 40);
   else if (currentSnow) score = Math.min(score, 60);
-  else if (currentWet) score = Math.min(score, 65);
+  else if (currentWet) score = Math.min(score, 55);
   else if (peakRain >= 80) score = Math.min(score, 58);
   else if (peakRain >= 60) score = Math.min(score, 72);
 

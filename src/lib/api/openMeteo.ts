@@ -41,7 +41,7 @@ export const fetchSunnyForecast = async (location: LocationResult, selectedDate?
   const roundedLat = location.latitude.toFixed(3);
   const roundedLon = location.longitude.toFixed(3);
   const dateKey = selectedDate ?? 'today';
-  const cacheKey = `sunnyday:forecast:v8:${roundedLat},${roundedLon}:${dateKey}`;
+  const cacheKey = `sunnyday:forecast:v9:${roundedLat},${roundedLon}:${dateKey}`;
   const cached = readCache<SunnyDaySummary>(cacheKey);
   if (cached) return cached;
 

@@ -1,13 +1,5 @@
 import type { LocationResult, NwsAlert } from '../../types/weather';
 
-type NwsPointResponse = {
-  properties?: {
-    forecastHourly?: string;
-    forecastZone?: string;
-    county?: string;
-  };
-};
-
 type NwsAlertsResponse = {
   features?: Array<{
     id?: string;
@@ -19,25 +11,9 @@ type NwsAlertsResponse = {
   }>;
 };
 
-const zoneIdFromUrl = (url?: string) => url?.split('/').at(-1) ?? null;
-
 export const fetchNwsAlerts = async (location: LocationResult): Promise<NwsAlert[]> => {
-  const pointResponse = await fetch(
-    `https://api.weather.gov/points/${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`,
-    {
-      headers: {
-        Accept: 'application/geo+json',
-      },
-    },
-  );
-
-  if (!pointResponse.ok) throw new Error('NWS point lookup unavailable.');
-
-  const point = (await pointResponse.json()) as NwsPointResponse;
-  const zone = zoneIdFromUrl(point.properties?.forecastZone) ?? zoneIdFromUrl(point.properties?.county);
-  if (!zone) return [];
-
-  const alertsResponse = await fetch(`https://api.weather.gov/alerts/active?zone=${zone}`, {
+  const point = `${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
+  const alertsResponse = await fetch(`https://api.weather.gov/alerts/active?point=${point}`, {
     headers: {
       Accept: 'application/geo+json',
     },
