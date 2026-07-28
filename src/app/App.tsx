@@ -488,7 +488,7 @@ function App() {
 
             {activePage === 'outlook' ? (
               <div className="outlook-page min-h-0 flex-1">
-                <DailyOutlook summary={displayedSummary} />
+                <DailyOutlook summary={displayedSummary} onSelectDate={changeDate} />
               </div>
             ) : null}
           </>

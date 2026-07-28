@@ -122,21 +122,21 @@ export function ScoreRing({ score, label, low, high, settling = false, size = 22
         {settling ? (
           <div>
             <div className="mx-auto h-11 w-24 animate-pulse rounded-lg bg-white/16" />
-            <p className="mt-2 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-white/44">
+            <p className="mt-2 text-[0.6875rem] font-bold uppercase tracking-[0.16em] ink-faint">
               Comparing models
             </p>
           </div>
         ) : (
           <div>
             <div className="flex items-start justify-center">
-              <span className="text-[clamp(1.6rem,24cqi,3.25rem)] font-black leading-none tabular-nums text-white">
+              <span className="text-[clamp(1.6rem,24cqi,3.25rem)] font-black leading-none tabular-nums ink">
                 {Math.round(shown)}
               </span>
-              <span className="ml-1 mt-1 text-[clamp(0.6rem,7cqi,1rem)] font-bold text-white/40">/100</span>
+              <span className="ml-1 mt-1 text-[clamp(0.6rem,7cqi,1rem)] font-bold ink-hair">/100</span>
             </div>
-            <p className="mt-1 text-[clamp(0.65rem,7cqi,0.9375rem)] font-black leading-tight text-white">{label}</p>
+            <p className="mt-1 text-[clamp(0.65rem,7cqi,0.9375rem)] font-black leading-tight ink">{label}</p>
             {hasBand ? (
-              <p className="mt-0.5 text-[clamp(0.55rem,5cqi,0.6875rem)] font-bold tabular-nums text-white/44">
+              <p className="mt-0.5 text-[clamp(0.55rem,5cqi,0.6875rem)] font-bold tabular-nums ink-faint">
                 models {low}–{high}
               </p>
             ) : null}

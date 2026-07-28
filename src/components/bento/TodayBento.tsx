@@ -96,12 +96,12 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
               <span className="tile-figure">
                 {formatHour(window.startTime, timeZone)}–{formatHour(window.endTime, timeZone)}
               </span>
-              <span className="text-[0.8125rem] font-bold text-white/50">
+              <span className="text-[0.8125rem] font-bold ink-faint">
                 {window.hours}h · {window.score}
               </span>
             </p>
           ) : (
-            <p className="mb-3 tile-figure text-white/40">—</p>
+            <p className="mb-3 tile-figure ink-hair">—</p>
           )}
           <DayTimeline hours={summary.hourly} window={window} timeZone={timeZone} />
         </div>
@@ -114,7 +114,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
             <span className="tile-figure" style={{ color: 'var(--rain-2)' }}>
               {percent(current.precipitationProbability)}
             </span>
-            <span className="text-[0.8125rem] font-bold text-white/45">{inches(current.precipitationInches)}</span>
+            <span className="text-[0.8125rem] font-bold ink-faint">{inches(current.precipitationInches)}</span>
           </p>
           <BarSeries
             values={hours.map((hour) => hour.precipitationProbability)}
@@ -132,7 +132,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
             <span className="tile-figure" style={{ color: 'var(--heat-2)' }}>
               {temp(current.apparentTemperatureF)}
             </span>
-            <span className="text-[0.8125rem] font-bold text-white/45">
+            <span className="text-[0.8125rem] font-bold ink-faint">
               {temp(today?.temperatureMaxF ?? null)} / {temp(today?.temperatureMinF ?? null)}
             </span>
           </p>
@@ -153,7 +153,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
               {percent(current.cloudCover)}
             </span>
             {sunshineRatio !== null ? (
-              <span className="text-[0.8125rem] font-bold text-white/45">{sunshineRatio}% sun</span>
+              <span className="text-[0.8125rem] font-bold ink-faint">{sunshineRatio}% sun</span>
             ) : null}
           </p>
           <Sparkline
@@ -209,7 +209,7 @@ export function TodayBento({ summary, settling }: TodayBentoProps) {
               height={28}
             />
           </div>
-          <p className="mt-1 text-[0.6875rem] font-bold text-white/40">gusts {mph(current.windGustMph)}</p>
+          <p className="mt-1 text-[0.6875rem] font-bold ink-hair">gusts {mph(current.windGustMph)}</p>
         </div>
       </Tile>
 

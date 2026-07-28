@@ -69,7 +69,7 @@ export function DayTimeline({ hours, window, timeZone }: DayTimelineProps) {
         ) : null}
       </div>
 
-      <div className="mt-1.5 flex justify-between text-[0.625rem] font-bold tabular-nums text-white/40">
+      <div className="mt-1.5 flex justify-between text-[0.625rem] font-bold tabular-nums ink-hair">
         <span>{formatHour(strip[0].time, timeZone)}</span>
         <span>{formatHour(strip[strip.length - 1].time, timeZone)}</span>
       </div>

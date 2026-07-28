@@ -71,10 +71,10 @@ export function GaugeArc({ value, max, from, to, caption, size = 96, decimals = 
 
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
-          <p className="text-xl font-black leading-none tabular-nums text-white">
+          <p className="text-xl font-black leading-none tabular-nums ink">
             {value === null ? '—' : shown.toFixed(decimals)}
           </p>
-          {caption ? <p className="mt-0.5 text-[0.625rem] font-bold text-white/48">{caption}</p> : null}
+          {caption ? <p className="mt-0.5 text-[0.625rem] font-bold ink-faint">{caption}</p> : null}
         </div>
       </div>
     </div>

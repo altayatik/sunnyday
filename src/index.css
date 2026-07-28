@@ -1701,3 +1701,129 @@ main > * {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/*
+ * Tile theming by scene brightness.
+ *
+ * Dark slate tiles on a bright afternoon made the app look overcast when the
+ * forecast was excellent. Bright scenes get a pale frosted surface with dark
+ * ink and saturated chart colours; dim scenes keep the deep surface with light
+ * ink and pastel charts. Surface and ink move together so contrast holds in
+ * both directions.
+ */
+.scene-clear-day,
+.scene-heat,
+.scene-partly-cloudy-day,
+.scene-cloudy,
+.scene-overcast,
+.scene-fog,
+.scene-snow {
+  --tile-base: rgba(255, 255, 255, 0.44);
+  --tile-base-feature: rgba(255, 255, 255, 0.56);
+  --tile-sheen-a: rgba(255, 255, 255, 0.34);
+  --tile-sheen-b: rgba(255, 255, 255, 0.12);
+  --tile-border: rgba(255, 255, 255, 0.6);
+  --tile-border-hover: rgba(255, 255, 255, 0.85);
+  --tile-inset: rgba(255, 255, 255, 0.6);
+  --tile-shadow: rgba(37, 70, 92, 0.14);
+
+  --tile-ink: #0d2b3c;
+  --tile-ink-soft: rgba(13, 43, 60, 0.72);
+  --tile-ink-faint: rgba(13, 43, 60, 0.55);
+  --tile-ink-hair: rgba(13, 43, 60, 0.38);
+  --tile-rule: rgba(13, 43, 60, 0.14);
+  --tile-track: rgba(13, 43, 60, 0.1);
+
+  /* Saturated variants: the pastels are invisible on a pale surface. */
+  --rain-1: #0284c7;
+  --rain-2: #0ea5e9;
+  --cloud-1: #64748b;
+  --cloud-2: #475569;
+  --sun-1: #d97706;
+  --sun-2: #f59e0b;
+  --heat-1: #ea580c;
+  --heat-2: #f97316;
+  --uv-1: #d97706;
+  --uv-2: #f59e0b;
+  --air-1: #15803d;
+  --air-2: #22c55e;
+  --wind-1: #0d9488;
+  --wind-2: #14b8a6;
+}
+
+.scene-rain,
+.scene-showers,
+.scene-storm,
+.scene-clear-night,
+.scene-partly-cloudy-night {
+  --tile-base: rgba(11, 30, 42, 0.5);
+  --tile-base-feature: rgba(11, 30, 42, 0.56);
+  --tile-sheen-a: rgba(255, 255, 255, 0.16);
+  --tile-sheen-b: rgba(255, 255, 255, 0.05);
+  --tile-border: rgba(255, 255, 255, 0.16);
+  --tile-border-hover: rgba(255, 255, 255, 0.32);
+  --tile-inset: rgba(255, 255, 255, 0.2);
+  --tile-shadow: rgba(12, 34, 48, 0.24);
+
+  --tile-ink: #ffffff;
+  --tile-ink-soft: rgba(255, 255, 255, 0.74);
+  --tile-ink-faint: rgba(255, 255, 255, 0.52);
+  --tile-ink-hair: rgba(255, 255, 255, 0.36);
+  --tile-rule: rgba(255, 255, 255, 0.12);
+  --tile-track: rgba(255, 255, 255, 0.09);
+}
+
+/* Fallback so a tile is never unstyled if a scene class is missing. */
+:root {
+  --tile-base: rgba(11, 30, 42, 0.5);
+  --tile-base-feature: rgba(11, 30, 42, 0.56);
+  --tile-sheen-a: rgba(255, 255, 255, 0.16);
+  --tile-sheen-b: rgba(255, 255, 255, 0.05);
+  --tile-border: rgba(255, 255, 255, 0.16);
+  --tile-border-hover: rgba(255, 255, 255, 0.32);
+  --tile-inset: rgba(255, 255, 255, 0.2);
+  --tile-shadow: rgba(12, 34, 48, 0.24);
+  --tile-ink: #ffffff;
+  --tile-ink-soft: rgba(255, 255, 255, 0.74);
+  --tile-ink-faint: rgba(255, 255, 255, 0.52);
+  --tile-ink-hair: rgba(255, 255, 255, 0.36);
+  --tile-rule: rgba(255, 255, 255, 0.12);
+  --tile-track: rgba(255, 255, 255, 0.09);
+}
+
+/*
+ * The detail sheet always sits on a dark scrim, so it keeps the dark
+ * treatment regardless of the sky - otherwise a pale tile would morph into a
+ * pale sheet floating on near-black.
+ */
+.sheet {
+  --tile-ink: #ffffff;
+  --tile-ink-soft: rgba(255, 255, 255, 0.74);
+  --tile-ink-faint: rgba(255, 255, 255, 0.52);
+  --tile-ink-hair: rgba(255, 255, 255, 0.36);
+  --tile-rule: rgba(255, 255, 255, 0.12);
+  --tile-track: rgba(255, 255, 255, 0.09);
+  --rain-1: #38bdf8;
+  --rain-2: #7dd3fc;
+  --cloud-1: #94a3b8;
+  --cloud-2: #cbd5e1;
+  --sun-1: #fbbf24;
+  --sun-2: #fde68a;
+  --heat-1: #fb923c;
+  --heat-2: #fdba74;
+  --uv-1: #f59e0b;
+  --uv-2: #fcd34d;
+  --air-1: #4ade80;
+  --air-2: #a7f3d0;
+  --wind-1: #2dd4bf;
+  --wind-2: #99f6e4;
+}
+
+/* Chart scaffolding that has to follow the ink. */
+.tile-rule {
+  background: var(--tile-rule);
+}
+
+.tile-track {
+  background: var(--tile-track);
+}
