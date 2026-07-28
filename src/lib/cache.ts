@@ -111,3 +111,17 @@ export const writeStorage = <T>(key: string, value: T) => {
 };
 
 export const removeStorage = (key: string) => removeRaw(key);
+
+/** Removes cached API responses while preserving preferences and locations. */
+export const clearSunnyDayCaches = () => {
+  const store = storage();
+  if (!store) return 0;
+
+  const keys: string[] = [];
+  for (let index = 0; index < store.length; index += 1) {
+    const key = store.key(index);
+    if (key?.startsWith('sunnyday:forecast:') || key?.startsWith('sunnyday:model:')) keys.push(key);
+  }
+  for (const key of keys) removeRaw(key);
+  return keys.length;
+};

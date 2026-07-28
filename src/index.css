@@ -14,6 +14,467 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Passcode-gated diagnostics and local control room. */
+.admin-gate,
+.admin-page {
+  min-height: 100svh;
+  color: #eaf7ff;
+  background:
+    radial-gradient(circle at 78% 8%, rgba(62, 181, 221, 0.18), transparent 24rem),
+    radial-gradient(circle at 12% 82%, rgba(63, 211, 176, 0.12), transparent 28rem),
+    #07121f;
+}
+
+.admin-gate {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.admin-gate-card {
+  width: min(100%, 27rem);
+  padding: 2rem;
+  border: 1px solid rgba(183, 228, 247, 0.18);
+  border-radius: 1.6rem;
+  background: linear-gradient(150deg, rgba(24, 49, 66, 0.96), rgba(9, 24, 37, 0.98));
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.admin-icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 1.25rem;
+  place-items: center;
+  border: 1px solid rgba(98, 224, 204, 0.24);
+  border-radius: 1rem;
+  color: #8ff3e0;
+  background: rgba(87, 225, 199, 0.1);
+}
+
+.admin-gate-card h1,
+.admin-topbar h1 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.admin-gate-card > p:not(.label-caps, .admin-error, .admin-security-note),
+.admin-topbar p:last-child,
+.admin-help {
+  color: rgba(218, 238, 247, 0.62);
+}
+
+.admin-gate-card label {
+  display: block;
+  margin: 1.4rem 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.admin-passcode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(190, 229, 245, 0.2);
+  border-radius: 0.9rem;
+  color: rgba(218, 238, 247, 0.5);
+  background: rgba(2, 11, 19, 0.42);
+}
+
+.admin-passcode-row input {
+  min-width: 0;
+  width: 100%;
+  padding: 0.85rem 0;
+  border: 0;
+  outline: 0;
+  color: white;
+  background: transparent;
+}
+
+.admin-primary,
+.admin-secondary,
+.admin-quiet,
+.admin-top-actions button,
+.admin-tool-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(192, 231, 246, 0.16);
+  border-radius: 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.admin-primary {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border-color: rgba(97, 236, 210, 0.34);
+  color: #071a1d;
+  background: linear-gradient(135deg, #8ff3e0, #9de4ff);
+}
+
+.admin-quiet {
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  color: rgba(225, 242, 249, 0.68);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-security-note {
+  display: flex;
+  gap: 0.55rem;
+  margin: 1.25rem 0 0;
+  color: rgba(216, 234, 242, 0.44);
+  font-size: 0.67rem;
+  line-height: 1.45;
+}
+
+.admin-security-note svg,
+.admin-top-actions svg,
+.admin-tool-row svg,
+.admin-secondary svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.admin-error {
+  margin: 0.7rem 0 0;
+  color: #ff9ca5;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.admin-page {
+  height: 100svh;
+  padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
+  overflow-y: auto;
+}
+
+.admin-topbar {
+  display: flex;
+  width: min(100%, 88rem);
+  margin: 0 auto 1.15rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-topbar p {
+  margin: 0;
+}
+
+.admin-top-actions,
+.admin-tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.admin-top-actions button,
+.admin-tool-row button,
+.admin-secondary {
+  padding: 0.7rem 0.85rem;
+  color: #eaf7ff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.admin-notice {
+  width: min(100%, 88rem);
+  margin: 0 auto 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(105, 235, 207, 0.18);
+  border-radius: 0.85rem;
+  color: #a7f4e6;
+  background: rgba(67, 203, 174, 0.08);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.admin-overview {
+  display: grid;
+  width: min(100%, 88rem);
+  margin: 0 auto 0.8rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-overview article,
+.admin-card {
+  border: 1px solid rgba(180, 220, 238, 0.13);
+  background: linear-gradient(150deg, rgba(21, 44, 60, 0.86), rgba(8, 24, 36, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.admin-overview article {
+  display: grid;
+  padding: 1rem;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 1rem;
+}
+
+.admin-overview svg {
+  width: 1.1rem;
+  color: #7ee7d2;
+}
+
+.admin-overview span {
+  color: rgba(218, 238, 247, 0.55);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.admin-overview strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-grid {
+  display: grid;
+  width: min(100%, 88rem);
+  margin: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.admin-card {
+  min-width: 0;
+  padding: 1.1rem;
+  border-radius: 1.2rem;
+}
+
+.admin-card-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-card-heading h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.1rem;
+}
+
+.admin-card-heading > svg {
+  width: 1.25rem;
+  color: #82e8d5;
+}
+
+.admin-source-list {
+  display: grid;
+  margin-top: 0.75rem;
+  gap: 0.45rem;
+}
+
+.admin-source-list article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.admin-source-list svg {
+  width: 1rem;
+}
+
+.status-ok {
+  color: #75e5bd;
+}
+
+.status-bad {
+  color: #ff929d;
+}
+
+.admin-source-list div {
+  min-width: 0;
+}
+
+.admin-source-list strong,
+.admin-source-list span {
+  display: block;
+}
+
+.admin-source-list strong {
+  font-size: 0.78rem;
+}
+
+.admin-source-list span,
+.admin-source-list time {
+  color: rgba(218, 238, 247, 0.48);
+  font-size: 0.67rem;
+}
+
+.admin-fields {
+  display: grid;
+  margin: 0.8rem 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-fields label {
+  color: rgba(225, 242, 249, 0.62);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.admin-fields select,
+.admin-fields input[type='number'],
+.admin-target-fields input {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.68rem;
+  border: 1px solid rgba(188, 226, 241, 0.15);
+  border-radius: 0.72rem;
+  outline: none;
+  color: #edfaff;
+  background: #102739;
+}
+
+.admin-target-fields {
+  display: grid;
+  margin: 0.8rem 0;
+  grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-target-fields label {
+  color: rgba(225, 242, 249, 0.62);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.admin-target-fields input {
+  margin-top: 0.35rem;
+}
+
+.admin-fields .admin-toggle {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0;
+}
+
+.admin-model-grid {
+  display: grid;
+  margin-top: 0.75rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.admin-model-grid article {
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid rgba(177, 220, 237, 0.11);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-model-grid article.is-ok {
+  border-color: rgba(94, 226, 182, 0.18);
+}
+
+.admin-model-grid article.is-error {
+  border-color: rgba(255, 122, 136, 0.2);
+}
+
+.admin-model-grid div {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-model-grid svg {
+  width: 0.9rem;
+  color: #73dfb9;
+}
+
+.admin-model-grid .is-error svg {
+  color: #ff8e9b;
+}
+
+.admin-model-grid strong,
+.admin-model-grid span,
+.admin-model-grid small {
+  display: block;
+}
+
+.admin-model-grid strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-model-grid span,
+.admin-model-grid small {
+  margin-top: 0.3rem;
+  color: rgba(218, 238, 247, 0.43);
+  font-size: 0.59rem;
+  line-height: 1.35;
+}
+
+.admin-tool-row {
+  margin-top: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .admin-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-model-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .admin-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-card-wide {
+    grid-column: auto;
+  }
+
+  .admin-overview,
+  .admin-fields,
+  .admin-target-fields,
+  .admin-model-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-tool-row button {
+    flex: 1 1 calc(50% - 0.4rem);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -418,6 +879,44 @@ main > * {
 }
 
 /*
+ * Night is a time state, not a weather condition. A rainy or stormy evening
+ * still needs the dark sky treatment, so these rules layer night colour over
+ * the active precipitation/cloud scene instead of requiring a dedicated
+ * `clear-night` scene.
+ */
+.weather-shell[data-night='true'] {
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 72% 13%, rgba(185, 216, 246, 0.16), transparent 12rem),
+    linear-gradient(165deg, #0b1426 0%, #172b40 50%, #274153 100%);
+}
+
+.weather-shell[data-night='true'].scene-cloudy,
+.weather-shell[data-night='true'].scene-overcast,
+.weather-shell[data-night='true'].scene-fog {
+  background:
+    radial-gradient(ellipse at 28% 12%, rgba(176, 199, 218, 0.16), transparent 22rem),
+    linear-gradient(165deg, #111c2d 0%, #27394a 52%, #3b4a55 100%);
+}
+
+.weather-shell[data-night='true'].scene-rain,
+.weather-shell[data-night='true'].scene-showers {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(154, 198, 225, 0.14), transparent 18rem),
+    linear-gradient(165deg, #091424 0%, #1b3042 48%, #304958 100%);
+}
+
+.weather-shell[data-night='true'].scene-storm {
+  background:
+    radial-gradient(circle at 74% 12%, rgba(228, 217, 158, 0.12), transparent 13rem),
+    linear-gradient(165deg, #070d19 0%, #172235 48%, #2d3948 100%);
+}
+
+.weather-shell[data-night='true']::before {
+  opacity: 0.38;
+}
+
+/*
  * Per-scene accent.
  *
  * The interface used to be cyan-and-amber regardless of the weather, so a
@@ -577,6 +1076,15 @@ main > * {
  * A slightly more opaque flat background reads almost identically and costs
  * nothing. `contain: paint` keeps each tile's repaints inside its own box.
  */
+/*
+ * Tiles follow the sky.
+ *
+ * A single dark slate tile looked leaden on a bright afternoon - the app read
+ * as overcast even when the forecast was excellent. Light scenes now get a
+ * pale frosted tile with dark ink; dark scenes keep the deep treatment with
+ * light ink. Both the surface and the text colour come from tokens, so the
+ * two never drift out of contrast with each other.
+ */
 .bento {
   position: relative;
   min-width: 0;
@@ -584,14 +1092,15 @@ main > * {
   flex-direction: column;
   overflow: hidden;
   contain: paint;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--tile-ink);
+  border: 1px solid var(--tile-border);
   border-radius: 1.35rem;
   background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)),
-    rgba(11, 30, 42, 0.52);
+    linear-gradient(155deg, var(--tile-sheen-a), var(--tile-sheen-b)),
+    var(--tile-base);
   box-shadow:
-    0 14px 38px rgba(12, 34, 48, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 14px 38px var(--tile-shadow),
+    inset 0 1px 0 var(--tile-inset);
   /* Transform and opacity only: both run on the compositor, so hover never
      triggers layout or paint on the main thread. */
   transition:
@@ -618,10 +1127,10 @@ main > * {
 @media (hover: hover) {
   .bento:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--tile-border-hover);
     box-shadow:
-      0 20px 46px rgba(12, 34, 48, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      0 20px 46px var(--tile-shadow),
+      inset 0 1px 0 var(--tile-inset);
   }
 
   .bento:hover::before {
@@ -632,20 +1141,20 @@ main > * {
 /* The score tile gets a stronger treatment - it is the one thing on screen
    that should read first. */
 .bento-feature {
-  border-color: rgba(255, 255, 255, 0.26);
+  border-color: var(--tile-border-hover);
   background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)),
-    rgba(11, 30, 42, 0.55);
+    linear-gradient(155deg, var(--tile-sheen-a), var(--tile-sheen-b)),
+    var(--tile-base-feature);
   box-shadow:
-    0 26px 68px rgba(12, 34, 48, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 26px 68px var(--tile-shadow),
+    inset 0 1px 0 var(--tile-inset);
 }
 
 .tile-figure {
   font-size: 1.75rem;
   font-weight: 900;
   line-height: 1;
-  color: #fff;
+  color: var(--tile-ink);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -655,7 +1164,24 @@ main > * {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(233, 250, 250, 0.5);
+  color: var(--tile-ink-faint);
+}
+
+/* Ink tokens, so tile text always tracks its surface. */
+.ink {
+  color: var(--tile-ink);
+}
+
+.ink-soft {
+  color: var(--tile-ink-soft);
+}
+
+.ink-faint {
+  color: var(--tile-ink-faint);
+}
+
+.ink-hair {
+  color: var(--tile-ink-hair);
 }
 
 @media (prefers-reduced-motion: reduce) {

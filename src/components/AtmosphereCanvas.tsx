@@ -3,6 +3,7 @@ import type { WeatherSceneId } from '../types/weather';
 
 type AtmosphereCanvasProps = {
   scene: WeatherSceneId;
+  isNight?: boolean;
 };
 
 type Particle = {
@@ -148,7 +149,7 @@ const seedParticle = (config: SceneConfig, width: number, height: number): Parti
  * - draws with flat fills only - no shadows or filters, which are the
  *   expensive canvas operations.
  */
-export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
+export function AtmosphereCanvas({ scene, isNight = false }: AtmosphereCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -162,6 +163,7 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
     let width = 0;
     let height = 0;
     let particles: Particle[] = [];
+    let nightStars: Particle[] = [];
     let frame = 0;
     let lastTime = performance.now();
     let lightningUntil = 0;
@@ -185,6 +187,9 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
       const density = width < 640 ? 0.3 : width < 1100 ? 0.5 : 0.7;
       const target = Math.round(config.count * density);
       particles = Array.from({ length: target }, () => seedParticle(config, width, height));
+      const starCount = scene === 'clear-night' || scene === 'partly-cloudy-night' ? 0 : Math.round(85 * density);
+      const starConfig: SceneConfig = { kind: 'stars', count: starCount, lightning: false, colour: 'rgba(225, 239, 255, 0.72)' };
+      nightStars = isNight ? Array.from({ length: starCount }, () => seedParticle(starConfig, width, height)) : [];
     };
 
     const drawRain = (delta: number, now: number) => {
@@ -260,6 +265,19 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
       context.globalAlpha = 1;
     };
 
+    const drawNightStars = (now: number) => {
+      if (!nightStars.length) return;
+      context.fillStyle = 'rgba(225, 239, 255, 0.72)';
+      for (const star of nightStars) {
+        const twinkle = 0.5 + 0.5 * Math.sin(now / 1300 + star.phase);
+        context.globalAlpha = star.alpha * twinkle * (scene === 'storm' ? 0.18 : scene === 'rain' || scene === 'overcast' ? 0.35 : 0.7);
+        context.beginPath();
+        context.arc(star.x, star.y, star.size * star.spread, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.globalAlpha = 1;
+    };
+
     const drawBlobs = (delta: number, now: number) => {
       for (const particle of particles) {
         particle.x += particle.vx * delta;
@@ -324,6 +342,7 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
       lastTime = now;
 
       context.clearRect(0, 0, width, height);
+      drawNightStars(now);
 
       switch (config.kind) {
         case 'rain':
@@ -350,7 +369,7 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
     };
 
     const start = () => {
-      if (running || reduceMotion.matches || config.kind === 'none') return;
+      if (running || reduceMotion.matches || (config.kind === 'none' && !isNight)) return;
       running = true;
       lastTime = performance.now();
       frame = requestAnimationFrame(render);
@@ -385,7 +404,7 @@ export function AtmosphereCanvas({ scene }: AtmosphereCanvasProps) {
       document.removeEventListener('visibilitychange', handleVisibility);
       reduceMotion.removeEventListener('change', handleMotionChange);
     };
-  }, [scene]);
+  }, [isNight, scene]);
 
   return <canvas ref={canvasRef} className="atmosphere-canvas" aria-hidden="true" />;
 }

@@ -6,18 +6,21 @@ import { TodayBento } from '../components/bento/TodayBento';
 import { RadarPanel } from '../components/RadarPanel';
 import { DailyOutlook } from '../components/DailyOutlook';
 import { AtmosphereCanvas } from '../components/AtmosphereCanvas';
+import { AdminPage, type SourceDiagnostic } from '../components/AdminPage';
 import { fetchSunnyForecast } from '../lib/api/openMeteo';
 import { fetchRainViewer } from '../lib/api/rainViewer';
 import { fetchNwsAlerts } from '../lib/api/nws';
-import { fetchModelForecasts } from '../lib/api/modelForecasts';
+import { fetchModelForecastBatch, type ModelForecastDiagnostic } from '../lib/api/modelForecasts';
 import { fetchAirQuality } from '../lib/api/airQuality';
 import { reverseGeocodeFallback } from '../lib/api/geocoding';
-import { readStorage, writeStorage } from '../lib/cache';
+import { clearSunnyDayCaches, readStorage, writeStorage } from '../lib/cache';
 import type { LocationResult, SourceState, SunnyDaySources, SunnyDaySummary } from '../types/weather';
 import { addDaysToDateKey, dateKeyInTimeZone } from '../lib/date';
 import { applyAirQuality, applyNwsAlerts } from '../lib/weather/normalizeOpenMeteo';
 import { applyModelConsensus } from '../lib/weather/forecastConsensus';
 import { scenePrefersDark } from '../lib/weather/weatherScene';
+import { readAdminSettings, saveAdminSettings, type AdminSettings } from '../lib/adminSettings';
+import { labelForScore } from '../lib/weather/sunnyDayScore';
 
 const LAST_LOCATION_KEY = 'sunnyday:last-location';
 
@@ -36,6 +39,17 @@ const loadingSources: SunnyDaySources = {
   rainViewer: 'loading',
   nws: 'loading',
   airQuality: 'loading',
+};
+
+const loadingDiagnostics = (): Record<keyof SunnyDaySources, SourceDiagnostic> => {
+  const startedAt = new Date().toISOString();
+  return {
+    openMeteo: { status: 'loading', startedAt, message: 'Loading primary forecast…' },
+    models: { status: 'loading', startedAt, message: 'Comparing seven forecast models…' },
+    rainViewer: { status: 'loading', startedAt, message: 'Loading radar metadata…' },
+    nws: { status: 'loading', startedAt, message: 'Checking active alerts…' },
+    airQuality: { status: 'loading', startedAt, message: 'Loading air quality…' },
+  };
 };
 
 /**
@@ -60,6 +74,9 @@ function App() {
   const [activePage, setActivePage] = useState<AppPage>('today');
   const [selectedDate, setSelectedDate] = useState(() => dateKeyInTimeZone());
   const [activeLocation, setActiveLocation] = useState<LocationResult | null>(null);
+  const [diagnostics, setDiagnostics] = useState(loadingDiagnostics);
+  const [modelDiagnostics, setModelDiagnostics] = useState<ModelForecastDiagnostic[]>([]);
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>(readAdminSettings);
   /**
    * True until the model consensus lands.
    *
@@ -92,7 +109,25 @@ function App() {
   const activeSources = useMemo(() => summary?.sources ?? sources, [summary?.sources, sources]);
   const minDate = useMemo(() => dateKeyInTimeZone(), []);
   const maxDate = useMemo(() => addDaysToDateKey(minDate, 6), [minDate]);
-  const scene = summary?.scene ?? 'clear-day';
+  const naturalScene = summary?.scene ?? 'clear-day';
+  const scene = adminSettings.sceneOverride === 'auto' ? naturalScene : adminSettings.sceneOverride;
+  const naturalNight = summary?.current.isDay === false || scenePrefersDark(naturalScene);
+  const isNight =
+    adminSettings.nightMode === 'auto' ? naturalNight : adminSettings.nightMode === 'night';
+  const isAdmin = new URLSearchParams(window.location.search).get('admin') === '1';
+  const displayedSummary = useMemo(() => {
+    if (!summary || adminSettings.scoreOverride === null) return summary;
+    return {
+      ...summary,
+      sunnyDayScore: adminSettings.scoreOverride,
+      scoreLabel: labelForScore(adminSettings.scoreOverride),
+    };
+  }, [adminSettings.scoreOverride, summary]);
+
+  const updateAdminSettings = (settings: AdminSettings) => {
+    setAdminSettings(settings);
+    saveAdminSettings(settings);
+  };
 
   const loadLocation = useCallback(async (location: LocationResult, date?: string) => {
     const targetDate = date ?? selectedDateRef.current;
@@ -109,7 +144,10 @@ function App() {
     setIsSettling(true);
     setError(null);
     setSources(loadingSources);
+    setDiagnostics(loadingDiagnostics());
+    setModelDiagnostics([]);
     setActiveLocation(location);
+    const requestStarted = performance.now();
 
     // Failsafe: if the model comparison stalls, reveal the primary-run score
     // rather than leaving the ring blank indefinitely.
@@ -138,40 +176,98 @@ function App() {
 
       setSummary(forecast);
       setSources(forecast.sources);
+      setDiagnostics((current) => ({
+        ...current,
+        openMeteo: {
+          status: 'ok',
+          startedAt: current.openMeteo.startedAt,
+          completedAt: new Date().toISOString(),
+          durationMs: Math.round(performance.now() - requestStarted),
+          message: `${forecast.hourly.length} forecast hours loaded`,
+        },
+      }));
       writeStorage(LAST_LOCATION_KEY, forecast.location);
 
-      void fetchModelForecasts(forecast.location, targetDate, controller.signal)
-        .then((modelForecasts) => {
+      const modelsStarted = performance.now();
+      void fetchModelForecastBatch(forecast.location, targetDate, controller.signal)
+        .then(({ forecasts: modelForecasts, diagnostics: modelResults }) => {
+          if (!isCurrent()) return;
+          setModelDiagnostics(modelResults);
           const status: SourceState =
             modelForecasts.length >= 2 ? 'ok' : modelForecasts.length ? 'unavailable' : 'error';
+          setDiagnostics((current) => ({
+            ...current,
+            models: {
+              status,
+              startedAt: current.models.startedAt,
+              completedAt: new Date().toISOString(),
+              durationMs: Math.round(performance.now() - modelsStarted),
+              message: `${modelForecasts.length} of 7 models returned usable data`,
+            },
+          }));
           patchSummary('models', status, (current) => applyModelConsensus(current, modelForecasts));
         })
-        .catch(() => patchSummary('models', 'error'))
+        .catch((caught) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({
+            ...current,
+            models: {
+              status: 'error',
+              startedAt: current.models.startedAt,
+              completedAt: new Date().toISOString(),
+              durationMs: Math.round(performance.now() - modelsStarted),
+              message: caught instanceof Error ? caught.message : 'Model comparison failed.',
+            },
+          }));
+          patchSummary('models', 'error');
+        })
         .finally(() => {
           clearTimeout(settleTimer);
           if (isCurrent()) setIsSettling(false);
         });
 
+      const airStarted = performance.now();
       void fetchAirQuality(forecast.location, targetDate)
         .then((airQuality) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({ ...current, airQuality: { status: 'ok', startedAt: current.airQuality.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - airStarted), message: `US AQI ${airQuality.usAqi ?? 'unavailable'}` } }));
           patchSummary('airQuality', 'ok', (current) => applyAirQuality(current, airQuality));
         })
-        .catch(() => patchSummary('airQuality', 'unavailable'));
+        .catch((caught) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({ ...current, airQuality: { status: 'unavailable', startedAt: current.airQuality.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - airStarted), message: caught instanceof Error ? caught.message : 'Air quality unavailable.' } }));
+          patchSummary('airQuality', 'unavailable');
+        });
 
+      const radarStarted = performance.now();
       void fetchRainViewer()
         .then((rainViewer) => {
-          patchSummary('rainViewer', rainViewer.latestFrame ? 'ok' : 'unavailable', (current) => ({
+          if (!isCurrent()) return;
+          const status: SourceState = rainViewer.latestFrame ? 'ok' : 'unavailable';
+          setDiagnostics((current) => ({ ...current, rainViewer: { status, startedAt: current.rainViewer.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - radarStarted), message: `${rainViewer.frames.length} radar frames available` } }));
+          patchSummary('rainViewer', status, (current) => ({
             ...current,
             rainViewer,
           }));
         })
-        .catch(() => patchSummary('rainViewer', 'error'));
+        .catch((caught) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({ ...current, rainViewer: { status: 'error', startedAt: current.rainViewer.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - radarStarted), message: caught instanceof Error ? caught.message : 'Radar metadata failed.' } }));
+          patchSummary('rainViewer', 'error');
+        });
 
+      const nwsStarted = performance.now();
       void fetchNwsAlerts(forecast.location)
         .then((nwsAlerts) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({ ...current, nws: { status: 'ok', startedAt: current.nws.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - nwsStarted), message: `${nwsAlerts.length} active alert${nwsAlerts.length === 1 ? '' : 's'}` } }));
           patchSummary('nws', 'ok', (current) => applyNwsAlerts(current, nwsAlerts));
         })
-        .catch(() => patchSummary('nws', 'unavailable'));
+        .catch((caught) => {
+          if (!isCurrent()) return;
+          setDiagnostics((current) => ({ ...current, nws: { status: 'unavailable', startedAt: current.nws.startedAt, completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - nwsStarted), message: caught instanceof Error ? caught.message : 'NWS alerts unavailable.' } }));
+          patchSummary('nws', 'unavailable');
+        });
     } catch (caught) {
       // An abort only ever means a newer request superseded this one, and
       // that newer request owns the loading state from here. Bailing out
@@ -187,6 +283,16 @@ function App() {
         airQuality: 'unavailable',
       });
       setError(caught instanceof Error ? caught.message : 'Forecast unavailable.');
+      setDiagnostics((current) => ({
+        ...current,
+        openMeteo: {
+          status: 'error',
+          startedAt: current.openMeteo.startedAt,
+          completedAt: new Date().toISOString(),
+          durationMs: Math.round(performance.now() - requestStarted),
+          message: caught instanceof Error ? caught.message : 'Primary forecast failed.',
+        },
+      }));
     } finally {
       if (isCurrent() && !controller.signal.aborted) setIsLoading(false);
     }
@@ -250,13 +356,39 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    if (!adminSettings.debugLogging) return;
+    console.info('[SunnyDay diagnostics]', { sources: activeSources, diagnostics, modelDiagnostics, summary });
+  }, [activeSources, adminSettings.debugLogging, diagnostics, modelDiagnostics, summary]);
+
+  if (isAdmin) {
+    return (
+      <AdminPage
+        summary={displayedSummary}
+        sources={activeSources}
+        diagnostics={diagnostics}
+        modelDiagnostics={modelDiagnostics}
+        settings={adminSettings}
+        onSettingsChange={updateAdminSettings}
+        onRefresh={() => void loadLocation(activeLocation ?? summary?.location ?? defaultLocation, selectedDate)}
+        onClearCache={clearSunnyDayCaches}
+        onLoadLocation={(location, date) => {
+          setSelectedDate(date);
+          void loadLocation(location, date);
+        }}
+        minDate={minDate}
+        maxDate={maxDate}
+      />
+    );
+  }
+
   return (
     <div
       className={`weather-shell scene-${scene}`}
-      data-night={scenePrefersDark(scene) ? 'true' : 'false'}
+      data-night={isNight ? 'true' : 'false'}
       data-page={activePage}
     >
-      <AtmosphereCanvas scene={scene} />
+      <AtmosphereCanvas scene={scene} isNight={isNight} />
 
       <Header
         sources={activeSources}
@@ -312,9 +444,9 @@ function App() {
           </section>
         ) : null}
 
-        {summary ? (
+        {displayedSummary ? (
           <>
-            <HeroSummary summary={summary} />
+            <HeroSummary summary={displayedSummary} />
 
             <nav className="app-page-nav surface-panel grid shrink-0 grid-cols-3 gap-1 p-1" aria-label="SunnyDay pages">
               {pages.map((page) => (
@@ -344,19 +476,19 @@ function App() {
             */}
             {activePage === 'today' ? (
               <div className="today-page min-h-0 flex-1">
-                <TodayBento summary={summary} settling={isSettling} />
+                <TodayBento summary={displayedSummary} settling={isSettling} />
               </div>
             ) : null}
 
             {activePage === 'radar' ? (
               <div className="radar-page min-h-0 flex-1">
-                <RadarPanel summary={summary} />
+                <RadarPanel summary={displayedSummary} />
               </div>
             ) : null}
 
             {activePage === 'outlook' ? (
               <div className="outlook-page min-h-0 flex-1">
-                <DailyOutlook summary={summary} />
+                <DailyOutlook summary={displayedSummary} />
               </div>
             ) : null}
           </>
